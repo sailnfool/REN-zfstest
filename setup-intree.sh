@@ -11,6 +11,9 @@
 # https://github.com/openzfs/zfs/wiki/Building-ZFS
 #
 #######################################################################
+source func.errecho
+source func.insufficient
+
 USAGE="\r\n${0##*/} [-hus] [-r <repo>]\r\n
 \t\tTest an in-tree copy of ZFS.  The default is to retrieve a copy\r\n
 \t\tof the source tree from a repository, then give the user the\r\n
