@@ -101,7 +101,7 @@ case ${OS_RELEASE} in
     ;;
   \?) #Invalid
     errecho "$-e" ${FUNCNAME} ${LINENO} \
-      "Unknown Operating System ${OPTARG}"
+      "Unknown Operating System ${OS_RELEASE}"
     exit 1
     ;;
 esac
