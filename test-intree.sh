@@ -92,7 +92,6 @@ then
 	# No matter the source, by default load the master branch,
 	# then load the selected branch.
 	####################
-	git checkout master
 	git checkout ${branch_name[$choice]}
   # git checkout REN/9158-Block-Histogram
 fi
