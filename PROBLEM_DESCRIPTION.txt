@@ -1,0 +1,59 @@
+Brian,
+
+Per my note last Friday, April 24, I was unable to get access to root
+on slagi and thence to slag{5,6}.  You had called into question that
+on the machine, auk134, which is a RHEL 7 machine sitting on my desk
+at the office, that perhaps the /tmp space on that machine was actually
+in tmpfs.
+
+Over this past weekend, I rebuilt a machine at home with a 2 TB 
+spinning drive.  The machine has Ubuntu 19.10 installed.
+
+I set up a cloned copy of openzfs/zfs on:
+
+http://github.com/sailnfool/zfs
+
+I also created a separate repository that has my testing scripts in 
+place to make sure I had reproducible results.
+
+The bottom line is that the simple act of adding the declarations of
+the arrays to track the histograms of the lengths of the psize objects,
+the counts for lsize and asize and the lengths of lsize and asize, was
+sufficient to cause the zloop test to fail.
+
+I created two separate #ifdef blocks to separate this declaration 
+from any code that references these added elements to the struct
+zdb_blkstats (and zdb_blkstats_t).  The first #ifdef is triggered
+by defining BLOCK_HISTOGRAM for the data declarations.  The second
+declaration for the code to manage these declarations are controlled
+by #ifdef BLOCK_HISTOGRAM_2.
+
+Just the act of building an executable with these additional variables
+defined, causes the testing of ZFS in zloop to fail.
+
+My working theory of the moment is that the zdb_blkstats data structure
+is actually referenced not just by the zdb structures but somehow there
+is another pointer to these data structures.  However, I am baffled
+that this simple declaration with no code inserted causes core dumps.
+
+Perhaps it is that the zdb_blkstats data structure, when it is 
+initialized by a call to bzero to "zero" out the data in the structure
+causes an overlaid data structure to have data corrupted.
+
+I have created a separate repository for testing:
+
+https://github.com/sailnfool/REN-zfstest
+
+This contains three scripts which are installed in $HOME/bin
+
+setup-intree - clones a copy of zfs under $HOME/github
+
+test-intree - prompts the user to select a branch from the clone and
+              then builds the zfs executables, running zloop to test
+              the executables
+
+build-tank - assuming testing was ok, then we build a tank to 
+             begin testing zdb.  
+
+More tests to follow once I can figure out the problem above where a
+simple variable declaration causes ZFS to fail.
