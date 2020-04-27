@@ -81,6 +81,6 @@ rm -rf ${ZFSHOME}
 # that are to be tested.
 ####################
 # git clone https://github.com/openzfs/zfs
-git clone https://github.com/sailnfool/zfs
+/usr/bin/time git clone https://github.com/sailnfool/zfs
 
 echo "run test-intree to test this cloned copy of ZFS"
