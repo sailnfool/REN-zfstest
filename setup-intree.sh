@@ -72,7 +72,8 @@ fi
 ####################
 # Remove the old copy of zfs that may have existed 
 ####################
-rm -rf ${ZFSHOME}
+cd ${ZFSPARENT}
+rm -rf zfs
 
 ####################
 # This should be parameterized to load either a tree from the stable
