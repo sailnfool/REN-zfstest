@@ -13,7 +13,49 @@
 #
 # Get correct version of the source from github
 #
+source func.insufficient
+source func.errecho
+source func.debug
 
+USAGE="\r\n${0##*/} [-hn]\r\n
+\t\tTest an in-tree copy of ZFS.  The default is to retrieve a copy\r\n
+\t\tof the source tree from a repository, then give the user the\r\n
+\t\tchoice to select a branch from that repository for testing.\r\n
+\t\tThe default repository is a private fork.  The -s option\r\n
+\t\tgives the option to select the [standard] default OpenZFS\r\n
+\t\trepository and -r lets the user specify an alternate repository\r\n
+\t-h\t\tPrint this message\r\n
+\t-n\t\tSkip requesting which branch (no branch) to test\r\n
+"
+
+NUMARGS=0
+if [ "${NUMARGS}" -gt 0 ]
+then
+  if [ $# -lt "${NUMARGS}" ]
+  then
+    insufficient ${0##*/} ${LINENO} ${NUMARGS}
+  fi
+fi
+
+skip_get_branch=0
+optionargs="hn"
+while getopts ${optionargs} name
+do
+  case ${name} in
+    h)
+      errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+      exit 0
+      ;;
+    n)
+      skip_get_branch=1
+      ;;
+    \?)
+      errecho "-e" ${0##*/} ${LINENO} "invalid option: -${OPTARG}"
+      errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+      exit 1
+      ;;
+  esac
+done
 ####################
 # Get the correct version of the source from github
 # This small chunk of script will retrieve the list of branches
@@ -30,27 +72,30 @@ then
   exit 1
 fi
 cd ${ZFSDIR}
-declare -A -g branch_name
-git branch -a | \
-  sed -n -e 's,remotes/origin/\([^H]\),\1,p' \
-  > /tmp/zfs_branches.$$.txt
-branchnumber=1
-while read branchname
-do
-  branch_name[${branchnumber}]=${branchname}
-  echo -e "${branchnumber}\t${branchname}"
-  ((branchnumber++))
-done < /tmp/zfs_branches.$$.txt
-read -p "Which Branch Number: " choice
-rm -f /tmp/zfs_branches.$$.txt
-
-####################
-# No matter the source, by default load the master branch,
-# then load the selected branch.
-####################
-git checkout master
-git checkout ${branch_name[$choice]}
-# git checkout REN/9158-Block-Histogram
+if [ "${skip_get_branch}" = 0 ]
+then
+	declare -A -g branch_name
+	git branch -a | \
+	  sed -n -e 's,remotes/origin/\([^H]\),\1,p' \
+	  > /tmp/zfs_branches.$$.txt
+	branchnumber=1
+	while read branchname
+	do
+	  branch_name[${branchnumber}]=${branchname}
+	  echo -e "${branchnumber}\t${branchname}"
+	  ((branchnumber++))
+	done < /tmp/zfs_branches.$$.txt
+	read -p "Which Branch Number: " choice
+	rm -f /tmp/zfs_branches.$$.txt
+	
+	####################
+	# No matter the source, by default load the master branch,
+	# then load the selected branch.
+	####################
+	git checkout master
+	git checkout ${branch_name[$choice]}
+  # git checkout REN/9158-Block-Histogram
+fi
 
 ####################
 # Now we return to the building of ZFS
@@ -114,3 +159,4 @@ sudo ./scripts/zfs.sh
 #
 sudo ./scripts/zloop.sh
 # sudo ./scripts/zfs-tests.sh -vx
+# vim: set syntax=bash, ts=2, sw=2, lines=55, columns=120,colorcolumn=78

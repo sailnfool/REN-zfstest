@@ -11,6 +11,61 @@
 # https://github.com/openzfs/zfs/wiki/Building-ZFS
 #
 #######################################################################
+USAGE="\r\n${0##*/} [-hus] [-r <repo>]\r\n
+\t\tTest an in-tree copy of ZFS.  The default is to retrieve a copy\r\n
+\t\tof the source tree from a repository, then give the user the\r\n
+\t\tchoice to select a branch from that repository for testing.\r\n
+\t\tThe default repository is a private fork.  The -s option\r\n
+\t\tgives the option to select the [standard] default OpenZFS\r\n
+\t\trepository and -r lets the user specify an alternate repository\r\n
+\t-h\t\tPrint this message\r\n
+\t-u\t\tUse the existing clone of the last repository deposited\r\n
+\t\t\tin \$HOME/github/zfs without reloading from a repository\r\n
+\t-s\t\tClone from the standard OpenZFS repository\r\n
+\t-r\t<repo>\tClone from <repo>
+"
+optionargs="hur:s"
+NUMARGS=0
+NUMARGS=0
+if [ "${NUMARGS}" -gt 0 ]
+then
+  if [ $# -lt "${NUMARGS}" ]
+  then
+    insufficient ${0##*/} ${LINENO} ${NUMARGS}
+  fi
+fi
+REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
+REPO_STANDARD="https://github.com/openzfs/zfs"
+REPO=${REPO_REN_BRANCH}
+use_existing_clone=0
+
+while getopts ${optionargs} name
+do
+  case ${name} in
+    h)
+      errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+      exit 0
+      ;;
+    u)
+      use_existing_clone=1
+      ;;
+    s)
+      REPO=${REPO_STANDARD}
+      ;;
+    r)
+      REPO=${OPTARG}
+      ;;
+    \?)
+      errecho "-e" ${0##*/} ${LINENO} "invalid option: -${OPTARG}"
+      errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+      exit 1
+      ;;
+  esac
+done
+
+####################
+# Find out what operating system we are running
+####################
 OS_RELEASE=$(lsb_release -i | cut -f 2)
 case ${OS_RELEASE} in
   Ubuntu)
@@ -31,6 +86,7 @@ case ${OS_RELEASE} in
 
     ####################
     # WARNING!! WARNING!! WARNING!! Not yet tested
+    # Works for RedHatEnterprise...
     # This needs a further test for RHEL 7 vs. RHEL 8
     ####################
     sudo yum install epel-release gcc make autoconf automake \
@@ -73,7 +129,10 @@ fi
 # Remove the old copy of zfs that may have existed 
 ####################
 cd ${ZFSPARENT}
-rm -rf zfs
+if [ "${use_existing_clone}" -eq 0 ]
+then
+  rm -rf zfs
+fi
 
 ####################
 # This should be parameterized to load either a tree from the stable
@@ -82,6 +141,9 @@ rm -rf zfs
 # that are to be tested.
 ####################
 # git clone https://github.com/openzfs/zfs
-/usr/bin/time git clone https://github.com/sailnfool/zfs
+if [ "${use_existing_clone}" -eq 0 ]
+then
+  /usr/bin/time git clone ${REPO}
+fi
 
 echo "run test-intree to test this cloned copy of ZFS"
