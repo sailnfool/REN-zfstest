@@ -27,7 +27,7 @@ case ${OS_RELEASE} in
     ####################
     sudo apt install libtool-bin
     ;;
-  RHEL)
+  RedHatEnterpriseWorkstation | RedHatEnterpriseServer )
 
     ####################
     # WARNING!! WARNING!! WARNING!! Not yet tested

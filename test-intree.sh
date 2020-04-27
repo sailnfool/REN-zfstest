@@ -64,7 +64,7 @@ case ${OS_RELEASE} in
       dbench nfs-kernel-server samba rng-tools pax linux-tools-common \
       selinux-utils quota
     ;;
-  RHEL)
+  RedHatEnterpriseServer | RedHatEnterpriseWorkstation )
 
     ####################
     # WARNING!! WARNING!! WARNING!! Not yet tested
