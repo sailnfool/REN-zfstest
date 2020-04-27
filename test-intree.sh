@@ -22,8 +22,15 @@
 # section of code should probably be placed in a source'd 
 # script since it is also used in "test-intree"
 ####################
+ZFSPARENT="$HOME/github"
+ZFSDIR="${ZFSPARENT}/zfs"
+if [ ! -d ${ZFSDIR} ]
+then
+  echo "Could not find ${ZFSDIR}"
+  exit 1
+fi
+cd ${ZFSDIR}
 declare -A -g branch_name
-cd zfs
 git branch -a | \
   sed -n -e 's,remotes/origin/\([^H]\),\1,p' \
   > /tmp/zfs_branches.$$.txt
