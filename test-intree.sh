@@ -64,7 +64,15 @@ done
 # section of code should probably be placed in a source'd 
 # script since it is also used in "test-intree"
 ####################
-ZFSPARENT="$HOME/github"
+host=$(hostname)
+if [ "${host}" -eq "slagi" ]
+then
+  ZFSPARENT="/tftpboot/global/novak5/github"
+  mkdir -p ${ZFSPARENT}
+else
+  ZFSPARENT="$HOME/github"
+fi
+
 ZFSDIR="${ZFSPARENT}/zfs"
 if [ ! -d ${ZFSDIR} ]
 then
