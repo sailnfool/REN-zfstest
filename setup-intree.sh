@@ -112,7 +112,7 @@ esac
 # intuitively obvious.
 ####################
 host=$(hostname)
-if [ "${host}" -eq "slagi" ]
+if [ "${host}" = "slagi" ]
 then
   ZFSPARENT="/tftpboot/global/novak5/github"
   mkdir -p ${ZFSPARENT}

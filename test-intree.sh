@@ -65,7 +65,7 @@ done
 # script since it is also used in "test-intree"
 ####################
 host=$(hostname)
-if [ "${host}" -eq "slagi" ]
+if [ "${host}" = "slagi" ]
 then
   ZFSPARENT="/tftpboot/global/novak5/github"
   mkdir -p ${ZFSPARENT}
