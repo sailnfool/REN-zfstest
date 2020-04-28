@@ -111,7 +111,13 @@ esac
 # of the user's HOME directory, since that will hopefully be 
 # intuitively obvious.
 ####################
-ZFSPARENT="$HOME/github"
+host=$(hostname)
+if [ "${host}" -eq "slagi" ]
+then
+  ZFSPARENT="/tftpboot/global/novak5"
+else
+  ZFSPARENT="$HOME/github"
+fi
 ZFSHOME="${ZFSPARENT}/zfs"
 cd ${ZFSPARENT}
 
