@@ -126,8 +126,8 @@ fi
 ####################
 # Now we return to the building of ZFS
 ####################
-sh autogen.sh
-./configure
+#sh autogen.sh
+#./configure
 make -s -j$(nproc)
 
 ####################
