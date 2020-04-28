@@ -42,6 +42,32 @@ REPO_STANDARD="https://github.com/openzfs/zfs"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
 
+####################
+# Find out what operating system we are running
+####################
+OS_RELEASE=$(lsb_release -i | cut -f 2)
+OS_REVISION=$(lsb_release -r | cut -f 2)
+
+####################
+# The assumption here is that we are cloning into a github subdirectory
+# of the user's HOME directory, since that will hopefully be 
+# intuitively obvious.
+# However, 
+####################
+host=$(hostname)
+if [ "${host}" = "slagi" ]
+then
+  ZFSPARENT="/tftpboot/global/novak5/github"
+  mkdir -p ${ZFSPARENT}
+else
+  ZFSPARENT="$HOME/github"
+fi
+
+errecho ${0##*/} ${LINENO} "Working from host $host"
+errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_RELEASE}"
+errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_REVISION}"
+
+
 while getopts ${optionargs} name
 do
   case ${name} in
@@ -65,60 +91,66 @@ do
       ;;
   esac
 done
-
-####################
-# Find out what operating system we are running
-####################
-OS_RELEASE=$(lsb_release -i | cut -f 2)
-case ${OS_RELEASE} in
-  Ubuntu)
-    sudo apt install build-essential autoconf automake libtool \
-      gawk alien fakeroot dkms libblkid-dev uuid-dev libudev-dev \
-      libssl-dev zlib1g-dev libaio-dev libattr1-dev libelf-dev \
-      linux-headers-$(uname -r) python3 \
-      python3-dev python3-setuptools python3-cffi libffi-dev
-
-    ####################
-    # When I went to do testing on .scritps/zloop.sh, I discovered that
-    # libtool was missing.  The tool was there, but not the binary
-    # command line interface since Ubuntu places that in libtool-bin
-    ####################
-    sudo apt install libtool-bin
-    ;;
-  RedHatEnterpriseWorkstation | RedHatEnterpriseServer )
-
-    ####################
-    # WARNING!! WARNING!! WARNING!! Not yet tested
-    # Works for RedHatEnterprise...
-    # This needs a further test for RHEL 7 vs. RHEL 8
-    ####################
-    sudo yum install epel-release gcc make autoconf automake \
-      libtool rpm-build dkms libtirpc-devel libblkid-devel \
-      libuuid-devel libudev-devel openssl-devel zlib-devel \
-      libaio-devel libattr-devel elfutils-libelf-devel \
-      kernel-devel-$(uname -r) python python2-devel \
-      python-setuptools python-cffi libffi-devel
-    ;;
-  \?) #Invalid
-    errecho "$-e" ${FUNCNAME} ${LINENO} \
-      "Unknown Operating System ${OS_RELEASE}"
-    exit 1
-    ;;
-esac
-
+if [[ ! "${host}" =~ 'slag.*' ]]
+then
+  errecho ${0##*/} ${LINENO} "Installing tools required for zfs"
+	case ${OS_RELEASE} in
+	  Ubuntu | Debian )
+	    sudo apt install build-essential autoconf automake libtool \
+	      gawk alien fakeroot dkms libblkid-dev uuid-dev libudev-dev \
+	      libssl-dev zlib1g-dev libaio-dev libattr1-dev libelf-dev \
+	      linux-headers-$(uname -r) python3 \
+	      python3-dev python3-setuptools python3-cffi libffi-dev
+	
+	    ####################
+	    # When I went to do testing on .scritps/zloop.sh, I discovered that
+	    # libtool was missing.  The tool was there, but not the binary
+	    # command line interface since Ubuntu places that in libtool-bin
+	    ####################
+	    sudo apt install libtool-bin
+	    ;;
+	  RedHatEnterpriseWorkstation | RedHatEnterpriseServer )
+	
+	    ####################
+	    # WARNING!! WARNING!! WARNING!! Not yet tested
+	    # Works for RedHatEnterprise...
+	    # This needs a further test for RHEL 7 vs. RHEL 8
+	    ####################
+      if [[ "${OS_REVISION}" =~ '7.*' ]]
+      then
+		    sudo yum install epel-release gcc make autoconf automake \
+		      libtool rpm-build dkms libtirpc-devel libblkid-devel \
+		      libuuid-devel libudev-devel openssl-devel zlib-devel \
+		      libaio-devel libattr-devel elfutils-libelf-devel \
+		      kernel-devel-$(uname -r) python python2-devel \
+		      python-setuptools python-cffi libffi-devel
+      else
+        if [[ "$OS_REVISION" =~ '8.*' ]]
+        then
+          sudo dnf install gcc make autoconf automake libtool \
+            rpm-build dkms libtirpc-devel libblkid-devel \
+            libuuid-devel libudev-devel openssl-devel zlib-devel \
+            libaio-devel libattr-devel elfutils-libelf-devel \
+            kernel-devel-$(uname -r) python3 python3-devel \
+            python3-setuptools python3-cffi libffi-devel
+        fi
+      fi
+	    ;;
+	  \?) #Invalid
+	    errecho "$-e" ${FUNCNAME} ${LINENO} \
+	      "Unknown Operating System ${OS_RELEASE}"
+	    exit 1
+	    ;;
+	esac
+else
+  errecho ${0##*/} ${LINENO} \
+    "No update to tools required for zfs on TOSS"
+fi
 ####################
 # The assumption here is that we are cloning into a github subdirectory
 # of the user's HOME directory, since that will hopefully be 
 # intuitively obvious.
 ####################
-host=$(hostname)
-if [ "${host}" = "slagi" ]
-then
-  ZFSPARENT="/tftpboot/global/novak5/github"
-  mkdir -p ${ZFSPARENT}
-else
-  ZFSPARENT="$HOME/github"
-fi
 ZFSHOME="${ZFSPARENT}/zfs"
 cd ${ZFSPARENT}
 
@@ -156,4 +188,4 @@ then
   /usr/bin/time git clone ${REPO}
 fi
 
-echo "run test-intree to test this cloned copy of ZFS"
+echo "${0##*/}: run test-intree to test this cloned copy of ZFS"

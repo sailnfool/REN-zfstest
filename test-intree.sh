@@ -38,6 +38,32 @@ then
 fi
 
 skip_get_branch=0
+
+####################
+# Find out what operating system we are running
+####################
+OS_RELEASE=$(lsb_release -i | cut -f 2)
+OS_REVISION=$(lsb_release -r | cut -f 2)
+
+####################
+# The assumption here is that we are cloning into a github subdirectory
+# of the user's HOME directory, since that will hopefully be 
+# intuitively obvious.
+# However, 
+####################
+host=$(hostname)
+if [ "${host}" = "slagi" ]
+then
+  ZFSPARENT="/tftpboot/global/novak5/github"
+else
+  ZFSPARENT="$HOME/github"
+fi
+mkdir -p ${ZFSPARENT}
+
+errecho ${0##*/} ${LINENO} "Working from host $host"
+errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_RELEASE}"
+errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_REVISION}"
+
 optionargs="hn"
 while getopts ${optionargs} name
 do
@@ -64,14 +90,6 @@ done
 # section of code should probably be placed in a source'd 
 # script since it is also used in "test-intree"
 ####################
-host=$(hostname)
-if [ "${host}" = "slagi" ]
-then
-  ZFSPARENT="/tftpboot/global/novak5/github"
-  mkdir -p ${ZFSPARENT}
-else
-  ZFSPARENT="$HOME/github"
-fi
 
 ZFSDIR="${ZFSPARENT}/zfs"
 if [ ! -d ${ZFSDIR} ]
@@ -79,6 +97,7 @@ then
   echo "Could not find ${ZFSDIR}"
   exit 1
 fi
+errecho ${0##*/} $LINENO "Working with zfs in ${ZFSDIR}"
 cd ${ZFSDIR}
 if [ "${skip_get_branch}" = 0 ]
 then
@@ -90,8 +109,8 @@ then
 	while read branchname
 	do
 	  branch_name[${branchnumber}]=${branchname}
-	  echo -e "${branchnumber}\t${branchname}"
-	  ((branchnumber++))
+    printf "%4d\t%s\n" ${branchnumber} ${branchname}
+    ((branchnumber++))
 	done < /tmp/zfs_branches.$$.txt
 	read -p "Which Branch Number: " choice
 	rm -f /tmp/zfs_branches.$$.txt
@@ -115,29 +134,43 @@ make -s -j$(nproc)
 # Install additional packages needed for the ZFS Test Suite (ZTS)
 # This list of packages is also dependent on the release on which
 # the test is being performed (Ubuntu, RHEL 7, etc.)
-#
-OS_RELEASE=$(lsb_release -i | cut -f 2)
-case ${OS_RELEASE} in
-  Ubuntu)
-    sudo apt install ksh bc fio acl sysstat mdadm lsscsi parted attr \
-      dbench nfs-kernel-server samba rng-tools pax linux-tools-common \
-      selinux-utils quota
-    ;;
-  RedHatEnterpriseServer | RedHatEnterpriseWorkstation )
-
-    ####################
-    # WARNING!! WARNING!! WARNING!! Not yet tested
-    # This needs a further test for RHEL 7 vs. RHEL 8
-    ####################
-    sudo yum install ksh bc fio acl sysstat mdadm lsscsi parted \
-      attr dbench nfs-utils samba rng-tools pax perf
-    ;;
-  \?) #Invalid
-    errecho "$-e" ${FUNCNAME} ${LINENO} \
-      "Unknown Operating System ${OS_RELEASE}"
-    exit 1
-    ;;
-esac
+####################
+if [[ ! "${host}" =~ 'slag.*' ]]
+then
+	case ${OS_RELEASE} in
+	  Ubuntu | Debian)
+	    sudo apt install ksh bc fio acl sysstat mdadm lsscsi parted attr \
+	      dbench nfs-kernel-server samba rng-tools pax linux-tools-common \
+	      selinux-utils quota
+	    ;;
+	  RedHatEnterpriseServer | RedHatEnterpriseWorkstation )
+	
+	    ####################
+	    # WARNING!! WARNING!! WARNING!! Not yet tested
+	    # This needs a further test for RHEL 7 vs. RHEL 8
+	    ####################
+	    if [[ "${OS_REVISION}" =~ '7.*' ]]
+	    then 
+	      sudo yum install ksh bc fio acl sysstat mdadm lsscsi parted \
+	        attr dbench nfs-utils samba rng-tools pax perf
+	    else
+	      if [[ "${OS_REVISION}" =~ '8.*' ]]
+	      then
+	        sudo dnf install ksh bc fio acl sysstat mdadm lsscsi \
+	          parted attr dbench nfs-utils samba rng-tools pax perf
+	      fi
+	    fi
+	    ;;
+	  \?) #Invalid
+	    errecho "$-e" ${FUNCNAME} ${LINENO} \
+	      "Unknown Operating System ${OS_RELEASE}"
+	    exit 1
+	    ;;
+	esac
+else
+  errecho ${0##*/} ${LINENO} \
+    "No update to tools required for zfs on TOSS"
+fi
 #
 # zfs-helper.sh: Certain functionality (i.e. /dev/zvol/) depends
 # on the ZFS provided udev helper scripts being installed on the
