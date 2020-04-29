@@ -121,7 +121,12 @@ then
 	####################
 	git checkout ${branch_name[$choice]}
   new_branch=${branch_name[$choice]}
-  old_branch=$(cat $HOME/.zfs_last_branch)
+  if [ -f $HOME/.zfs_last_branch ]
+  then
+    old_branch=$(cat $HOME/.zfs_last_branch)
+  else
+    echo "0" > $HOME/.zfs_last_branch
+  fi
   if [ "${old_branch}" = "${new_branch}" ]
   then
     reconfigure=0
