@@ -120,14 +120,25 @@ then
 	# then load the selected branch.
 	####################
 	git checkout ${branch_name[$choice]}
-  # git checkout REN/9158-Block-Histogram
+  new_branch=${branch_name[$choice]}
+  old_branch=$(cat $HOME/.zfs_last_branch)
+  if [ "${old_branch}" = "${new_branch}" ]
+  then
+    reconfigure=0
+  else
+    reconfigure=1
+    echo ${new_branch} > ~/.zfs_last_branch
+  fi
 fi
 
 ####################
 # Now we return to the building of ZFS
 ####################
-#sh autogen.sh
-#./configure
+if [ "${reconfigure}" -eq "1" ]
+then
+  sh autogen.sh
+  ./configure
+fi
 make -s -j$(nproc)
 
 ####################
@@ -135,8 +146,10 @@ make -s -j$(nproc)
 # This list of packages is also dependent on the release on which
 # the test is being performed (Ubuntu, RHEL 7, etc.)
 ####################
-if [[ ! "${host}" =~ 'slag.*' ]]
+slagnames='slag.*'
+if [[ ! "${host}" =~ ${slagnames} ]]
 then
+  errecho ${0##*/} ${LINENO} "We are not on a slag node"
 	case ${OS_RELEASE} in
 	  Ubuntu | Debian)
 	    sudo apt install ksh bc fio acl sysstat mdadm lsscsi parted attr \
@@ -149,12 +162,14 @@ then
 	    # WARNING!! WARNING!! WARNING!! Not yet tested
 	    # This needs a further test for RHEL 7 vs. RHEL 8
 	    ####################
-	    if [[ "${OS_REVISION}" =~ '7.*' ]]
+      version7name='7\..*'
+      version8name='8\..*'
+	    if [[ "${OS_REVISION}" =~ ${version7name} ]]
 	    then 
 	      sudo yum install ksh bc fio acl sysstat mdadm lsscsi parted \
 	        attr dbench nfs-utils samba rng-tools pax perf
 	    else
-	      if [[ "${OS_REVISION}" =~ '8.*' ]]
+	      if [[ "${OS_REVISION}" =~ ${version8name} ]]
 	      then
 	        sudo dnf install ksh bc fio acl sysstat mdadm lsscsi \
 	          parted attr dbench nfs-utils samba rng-tools pax perf

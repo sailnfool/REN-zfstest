@@ -91,7 +91,8 @@ do
       ;;
   esac
 done
-if [[ ! "${host}" =~ 'slag.*' ]]
+slagname='slag[i0-9][0-9]*'
+if [[ ! "${host}" =~ ${slagname} ]]
 then
   errecho ${0##*/} ${LINENO} "Installing tools required for zfs"
 	case ${OS_RELEASE} in
@@ -116,7 +117,9 @@ then
 	    # Works for RedHatEnterprise...
 	    # This needs a further test for RHEL 7 vs. RHEL 8
 	    ####################
-      if [[ "${OS_REVISION}" =~ '7.*' ]]
+      version7name='7\..*'
+      version8name='8\..*'
+      if [[ "${OS_REVISION}" =~ ${version7name} ]]
       then
 		    sudo yum install epel-release gcc make autoconf automake \
 		      libtool rpm-build dkms libtirpc-devel libblkid-devel \
@@ -125,7 +128,7 @@ then
 		      kernel-devel-$(uname -r) python python2-devel \
 		      python-setuptools python-cffi libffi-devel
       else
-        if [[ "$OS_REVISION" =~ '8.*' ]]
+        if [[ "$OS_REVISION" =~ ${version8name} ]]
         then
           sudo dnf install gcc make autoconf automake libtool \
             rpm-build dkms libtirpc-devel libblkid-devel \
