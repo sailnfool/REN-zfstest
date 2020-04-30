@@ -30,5 +30,8 @@ do
   fi
   POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 done
-zpool create tank ${POOLNAMES}
-zpool status tank
+sudo zpool create tank ${POOLNAMES}
+sudo zpool status tank
+sudo chown $USER /tank
+sudo chgrp $USER /tank
+
