@@ -189,6 +189,7 @@ fi
 if [ "${use_existing_clone}" -eq 0 ]
 then
   /usr/bin/time git clone ${REPO}
+  rm -rf $HOME/.zfs_last_branch
 fi
 
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"
