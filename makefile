@@ -3,7 +3,7 @@ PREFIX?=$(HOME)
 .sh:
 	@rm -f $@
 	cp $< $@
-INSTALL = build-tank setup-intree test-intree
+INSTALL = build-tank setup-intree test-intree zdb-hist
 
 EXECDIR := $(PREFIX)/bin
 
