@@ -65,7 +65,7 @@ fi
 
 errecho ${0##*/} ${LINENO} "Working from host $host"
 errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_RELEASE}"
-errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_REVISION}"
+errecho ${0##*/} ${LINENO} "Working with OS Revision ${OS_REVISION}"
 
 
 while getopts ${optionargs} name
