@@ -155,7 +155,7 @@ slagnames='slag.*'
 if [[ ! "${host}" =~ ${slagnames} ]]
 then
   errecho ${0##*/} ${LINENO} \
-    "We are not on a host ${host} not a slag node"
+    "We are on host ${host} not a slag node"
 	case ${OS_RELEASE} in
 	  Ubuntu | Debian)
 	    sudo apt install ksh bc fio acl sysstat mdadm lsscsi parted attr \
