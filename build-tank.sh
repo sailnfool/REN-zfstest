@@ -14,7 +14,7 @@ set -x
 if [ ! -d /zpool ]
 then
   sudo mkdir -p /zpool
-  sudo ${USER} /zpool
+  sudo chown ${USER} /zpool
   sudo chgrp ${USER} /zpool
 fi
 

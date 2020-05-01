@@ -1,3 +1,3 @@
 #!/bin/bash
-zdb -bbbbb tank > /tmp/dumpbbbbb.txt
-zdb -Pbbbbb tank > /tmp/dumpPbbbbb.txt
+zdb -bbbbb tank | grep -v '^objset.*' > /tmp/dumpbbbbb.txt
+zdb -Pbbbbb tank | grep -v '^objset.*' > /tmp/dumpPbbbbb.txt
