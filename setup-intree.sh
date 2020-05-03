@@ -41,6 +41,7 @@ REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
 REPO_STANDARD="https://github.com/openzfs/zfs"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
+LAST_BRANCH=$HOME/.zfs_last_branch
 
 ####################
 # Find out what operating system we are running
@@ -177,7 +178,10 @@ cd ${ZFSPARENT}
 if [ "${use_existing_clone}" -eq 0 ]
 then
   rm -rf zfs
-  rm -rf $HOME/.zfs_last_branch
+  if [ -f ${LAST_BRANCH} ]
+  then
+    rm -rf ${LAST_BRANCH}
+  fi
 fi
 
 ####################
@@ -190,7 +194,7 @@ fi
 if [ "${use_existing_clone}" -eq 0 ]
 then
   /usr/bin/time git clone ${REPO}
-  rm -rf $HOME/.zfs_last_branch
+  rm -rf ${LAST_BRANCH}
 fi
 
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"
