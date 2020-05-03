@@ -177,6 +177,7 @@ cd ${ZFSPARENT}
 if [ "${use_existing_clone}" -eq 0 ]
 then
   rm -rf zfs
+  rm -rf $HOME/.zfs_last_branch
 fi
 
 ####################
