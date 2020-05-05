@@ -1,0 +1,37 @@
+Add block histogram to zdb
+
+The block histogram tracks the changes to psize, lsize and asize
+both in the count of the number of blocks (by blocksize) and the
+total length of all of the blocks for that blocksize.  It also 
+keeps a running total of the cumulative size of all of the blocks
+up to each size to help determine the size of caching SSDs to be
+added to zfs hardware deployments.
+
+This change is accessed by specifying "zdb -bbbbb pool" (yes that
+is five (5) b's.
+
+The initial attempts added the histogram information into a data
+structure added to the stack (locally declared variables), but
+that overflowed the zdb stack. The data structures were changed
+to "calloc" from the heap.  A number of changes from "." to "->"
+structure references were required as a result.
+
+Dumping the psize, lsize and asize as individual dumps turned out
+to be unwieldy, so a routine was added to make a pretty printed
+array of the blocksize, counts, length and cumulative for all three
+sizes in parallel.  The default printing is to print the numbers
+in human readable format (e.g 176G, 24K, etc.).  If you want the
+data in raw numbers simply use the -P option:
+
+zdb -Pbbbbb pool
+
+As a safety measure, I added a test to insure that when a calloc
+of data is done, it verifies that the data was allocated and if
+it is not, then it will print an error message and quit.  I noted
+that there were two other "calloc" calls in the code so I encoded
+the test in a macro and placed it immediately after those calls.
+The macro dumps the source file name and the line number.  It is
+unlikely that someone using zdb will not have access to the
+source since the zdb outputs (let alone command line invocations)
+are incomprehensible without it.
+
