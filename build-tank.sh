@@ -38,5 +38,5 @@ then
 	zpool create tank ${POOLNAMES}
 	zpool status tank
 	chown $USER /tank
-	sudo chgrp $USER /tank
+	chgrp $USER /tank
 fi
