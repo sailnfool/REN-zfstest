@@ -13,9 +13,12 @@
 set -x
 if [ ! -d /zpool ]
 then
-  sudo mkdir -p /zpool
-  sudo chown ${USER} /zpool
-  sudo chgrp ${USER} /zpool
+	if [ $EUID = 0 ]
+	then
+  		mkdir -p /zpool
+  		chown ${USER} /zpool
+  		chgrp ${USER} /zpool
+	fi
 fi
 
 ####################
@@ -30,8 +33,10 @@ do
   fi
   POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 done
-sudo zpool create tank ${POOLNAMES}
-sudo zpool status tank
-sudo chown $USER /tank
-sudo chgrp $USER /tank
-
+if [ $EUID = 0 ]
+then
+	zpool create tank ${POOLNAMES}
+	zpool status tank
+	chown $USER /tank
+	sudo chgrp $USER /tank
+fi
