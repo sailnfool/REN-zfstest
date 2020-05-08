@@ -23,8 +23,8 @@ sudo echo "export PATH=$HOME/github/zfs/bin:$PATH" >> /root/.bashrc
 if [ ! -d /zpool ]
 then
 	sudo mkdir -p /zpool
-  	sudo chown ${USER} /zpool
-  	sudo chgrp ${USER} /zpool
+ 	sudo chown ${USER} /zpool
+ 	sudo chgrp ${USER} /zpool
 fi
 
 ####################
@@ -39,9 +39,9 @@ do
   fi
   POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 done
-sudo zpool create tank ${POOLNAMES}
-sudo zpool status tank
-sudo chown $USER /tank
-sudo chgrp $USER /tank
+sudo (source /root/.bashrc; zpool create tank ${POOLNAMES})
+sudo (source /root/.bashrc; zpool status tank)
+sudo (source /root/.bashrc; chown $USER /tank)
+sudo (source /root/.bashrc; chgrp $USER /tank)
 sudo mv /root/.bashrc.${USER}.save /root/.bashrc
 chown root /root/.bashrc
