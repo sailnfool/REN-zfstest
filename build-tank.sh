@@ -1,4 +1,8 @@
 #!/bin/bash
+if [ $# -gt 0 ]
+then
+	luser=$1
+fi
 #######################################################################
 # Author: Robert E. Novak
 # email: novak5@llnl.gov, sailnfool@gmail.com
@@ -11,34 +15,34 @@
 # the user invoking the script.
 #######################################################################
 set -x
-if [ -r /root/.bashrc.${USER}.save ]
+if [ -r /root/.bashrc.${luser}.save ]
 then
-	sudo cp /root/.bashrc.${USER}.save /root/.bashrc
+	sudo cp /root/.bashrc.${luser}.save /root/.bashrc
 	chown root /root/.bashrc
 else
-	sudo cp /root/.bashrc /root/.bashrc.${USER}.save
-	sudo chown ${USER} /root/.bashrc.${USER}.save
+	sudo cp /root/.bashrc /root/.bashrc.${luser}.save
+	sudo chown ${luser} /root/.bashrc.${luser}.save
 fi
 sudo echo "export PATH=$HOME/github/zfs/bin:$PATH" >> /root/.bashrc
 if [ ! -d /zpool ]
 then
 	sudo mkdir -p /zpool
- 	sudo chown ${USER} /zpool
- 	sudo chgrp ${USER} /zpool
+ 	sudo chown ${luser} /zpool
+ 	sudo chgrp ${luser} /zpool
 fi
 
 case $(hostname) in
 slag5)
 	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U?)
 	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown $USER /tank)
-	sudo (source /root/.bashrc; chgrp $USER /tank)
+	sudo (source /root/.bashrc; chown ${luser} /tank)
+	sudo (source /root/.bashrc; chgrp ${luser} /tank)
 	;;
 slag6)
 	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U1?)
 	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown $USER /tank)
-	sudo (source /root/.bashrc; chgrp $USER /tank)
+	sudo (source /root/.bashrc; chown ${luser} /tank)
+	sudo (source /root/.bashrc; chgrp ${luser} /tank)
 	;;
 auk134 | rnovak-Optiplex-980)
 	####################
@@ -55,12 +59,12 @@ auk134 | rnovak-Optiplex-980)
 	done
 	sudo (source /root/.bashrc; zpool create tank ${POOLNAMES})
 	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown $USER /tank)
-	sudo (source /root/.bashrc; chgrp $USER /tank)
+	sudo (source /root/.bashrc; chown ${luser} /tank)
+	sudo (source /root/.bashrc; chgrp ${luser} /tank)
 	;;
 \?)
 	echo "Unrecognized hostname"
 	;;
 esac
-sudo mv /root/.bashrc.${USER}.save /root/.bashrc
+sudo mv /root/.bashrc.${luser}.save /root/.bashrc
 sudo chown root /root/.bashrc

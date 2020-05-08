@@ -1,8 +1,12 @@
 #!/bin/bash
+if [ $# -gt 0 ]
+then
+	luser=$1
+fi
 case $(hostname) in
 slag5 | auk134 | corona* )
 	cd $HOME/..
-	find ${USER} -print | cpio -pdm /tank
+	find ${luser} -print | cpio -pdm /tank
 	;;
 \?)
 	cd ~/Dropbox/
