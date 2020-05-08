@@ -27,21 +27,40 @@ then
  	sudo chgrp ${USER} /zpool
 fi
 
-####################
-# create 8 files of 8GB each for a total pool size of 64GB
-####################
-ZPOOL=/zpool/file
-for i in 1 2 3 4 5 6 7 8
-do
-  if [ ! -f ${ZPOOL}${i} ]
-  then
-    dd if=/dev/zero of=${ZPOOL}${i} bs=1G count=8 &> /dev/null
-  fi
-  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
-done
-sudo (source /root/.bashrc; zpool create tank ${POOLNAMES})
-sudo (source /root/.bashrc; zpool status tank)
-sudo (source /root/.bashrc; chown $USER /tank)
-sudo (source /root/.bashrc; chgrp $USER /tank)
+case $(hostname) in
+slag5)
+	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U?)
+	sudo (source /root/.bashrc; zpool status tank)
+	sudo (source /root/.bashrc; chown $USER /tank)
+	sudo (source /root/.bashrc; chgrp $USER /tank)
+	;;
+slag6)
+	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U1?)
+	sudo (source /root/.bashrc; zpool status tank)
+	sudo (source /root/.bashrc; chown $USER /tank)
+	sudo (source /root/.bashrc; chgrp $USER /tank)
+	;;
+auk134 | rnovak-Optiplex-980)
+	####################
+	# create 8 files of 8GB each for a total pool size of 64GB
+	####################
+	ZPOOL=/zpool/file
+	for i in 1 2 3 4 5 6 7 8
+	do
+	  if [ ! -f ${ZPOOL}${i} ]
+	  then
+	    dd if=/dev/zero of=${ZPOOL}${i} bs=1G count=8 &> /dev/null
+	  fi
+	  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
+	done
+	sudo (source /root/.bashrc; zpool create tank ${POOLNAMES})
+	sudo (source /root/.bashrc; zpool status tank)
+	sudo (source /root/.bashrc; chown $USER /tank)
+	sudo (source /root/.bashrc; chgrp $USER /tank)
+	;;
+\?)
+	echo "Unrecognized hostname"
+	;;
+esac
 sudo mv /root/.bashrc.${USER}.save /root/.bashrc
-chown root /root/.bashrc
+sudo chown root /root/.bashrc
