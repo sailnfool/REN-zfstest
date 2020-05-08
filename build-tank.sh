@@ -15,36 +15,41 @@ fi
 # the user invoking the script.
 #######################################################################
 set -x
+if [ $EUID != 0 ]
+then
+	echo "Not root"
+	exit -1
+fi
 if [ -r /root/.bashrc.${luser}.save ]
 then
-	sudo cp /root/.bashrc.${luser}.save /root/.bashrc
+	cp /root/.bashrc.${luser}.save /root/.bashrc
 	chown root /root/.bashrc
 else
-	sudo cp /root/.bashrc /root/.bashrc.${luser}.save
-	sudo chown ${luser} /root/.bashrc.${luser}.save
+	cp /root/.bashrc /root/.bashrc.${luser}.save
+	chown ${luser} /root/.bashrc.${luser}.save
 fi
-sudo echo "export PATH=$HOME/github/zfs/bin:$PATH" >> /root/.bashrc
-if [ ! -d /zpool ]
-then
-	sudo mkdir -p /zpool
- 	sudo chown ${luser} /zpool
- 	sudo chgrp ${luser} /zpool
-fi
+export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
 
 case $(hostname) in
 slag5)
-	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U?)
-	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown ${luser} /tank)
-	sudo (source /root/.bashrc; chgrp ${luser} /tank)
+	zpool create tank /dev/disk/by-vdev/U?
+	zpool status tank
+	chown ${luser} /tank
+	chgrp ${luser} /tank
 	;;
 slag6)
-	sudo (source /root/.bashrc; zpool create tank /dev/disk/by-vdev/U1?)
-	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown ${luser} /tank)
-	sudo (source /root/.bashrc; chgrp ${luser} /tank)
+	zpool create tank /dev/disk/by-vdev/U1?
+	zpool status tank
+	chown ${luser} /tank
+	chgrp ${luser} /tank
 	;;
 auk134 | rnovak-Optiplex-980)
+	if [ ! -d /zpool ]
+	then
+		mkdir -p /zpool
+	 	chown ${luser} /zpool
+	 	chgrp ${luser} /zpool
+	fi
 	####################
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
@@ -57,14 +62,14 @@ auk134 | rnovak-Optiplex-980)
 	  fi
 	  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done
-	sudo (source /root/.bashrc; zpool create tank ${POOLNAMES})
-	sudo (source /root/.bashrc; zpool status tank)
-	sudo (source /root/.bashrc; chown ${luser} /tank)
-	sudo (source /root/.bashrc; chgrp ${luser} /tank)
+	zpool create tank ${POOLNAMES}
+	zpool status tank
+	chown ${luser} /tank
+	chgrp ${luser} /tank
 	;;
 \?)
 	echo "Unrecognized hostname"
 	;;
 esac
-sudo mv /root/.bashrc.${luser}.save /root/.bashrc
-sudo chown root /root/.bashrc
+mv /root/.bashrc.${luser}.save /root/.bashrc
+chown root /root/.bashrc
