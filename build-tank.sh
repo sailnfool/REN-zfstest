@@ -11,14 +11,20 @@
 # the user invoking the script.
 #######################################################################
 set -x
+if [ -r /root/.bashrc.${USER}.save ]
+then
+	sudo cp /root/.bashrc.${USER}.save /root/.bashrc
+	chown root /root/.bashrc
+else
+	sudo cp /root/.bashrc /root/.bashrc.${USER}.save
+	sudo chown ${USER} /root/.bashrc.${USER}.save
+fi
+sudo echo "export PATH=$HOME/github/zfs/bin:$PATH" >> /root/.bashrc
 if [ ! -d /zpool ]
 then
-	if [ $EUID = 0 ]
-	then
-  		mkdir -p /zpool
-  		chown ${USER} /zpool
-  		chgrp ${USER} /zpool
-	fi
+	sudo mkdir -p /zpool
+  	sudo chown ${USER} /zpool
+  	sudo chgrp ${USER} /zpool
 fi
 
 ####################
@@ -33,10 +39,9 @@ do
   fi
   POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 done
-if [ $EUID = 0 ]
-then
-	zpool create tank ${POOLNAMES}
-	zpool status tank
-	chown $USER /tank
-	chgrp $USER /tank
-fi
+sudo zpool create tank ${POOLNAMES}
+sudo zpool status tank
+sudo chown $USER /tank
+sudo chgrp $USER /tank
+sudo mv /root/.bashrc.${USER}.save /root/.bashrc
+chown root /root/.bashrc
