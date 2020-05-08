@@ -7,6 +7,10 @@ fi
 if [ $# -gt 0 ]
 then
 	luser=$1
+else
+	echo "Missing username"
+	echo "${0##*/} <user>"
+	exit -1
 fi
 case $(hostname) in
 slag5 | slag6 | auk134 | corona* )

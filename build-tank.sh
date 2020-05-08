@@ -2,6 +2,10 @@
 if [ $# -gt 0 ]
 then
 	luser=$1
+else
+	echo "Missing username"
+	echo "${0##*/} <username>
+	exit -1
 fi
 #######################################################################
 # Author: Robert E. Novak
