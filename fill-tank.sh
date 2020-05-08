@@ -1,9 +1,8 @@
 #!/bin/bash
 if [ $EUID != 0 ]
 then
-	echo "Not root
+	echo "Not root"
 	exit -1
-fi
 fi
 if [ $# -gt 0 ]
 then
