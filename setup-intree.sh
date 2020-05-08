@@ -183,6 +183,7 @@ LOAD_UNLOAD_SCRIPT="./scripts/zfs.sh"
 if [ -f ${ZFSHOME}/${LOAD_UNLOAD_SCRIPT} ]
 then
 	cd ${ZFSHOME}
+	echo "Super user required to unload old kernel modules"
 	sudo ${LOAD_UNLOAD_SCRIPT} -u
 	cd ${ZFSPARENT}
 fi
