@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 if [ $# -gt 0 ]
 then
 	luser=$1
@@ -38,14 +39,14 @@ case $(hostname) in
 slag5)
 	zpool create tank /dev/disk/by-vdev/U?
 	zpool status tank
-	zfs set recordsize=1m
+	zfs set recordsize=1m tank
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
 slag6)
 	zpool create tank /dev/disk/by-vdev/U1?
 	zpool status tank
-	zfs set recordsize=1m
+	zfs set recordsize=1m tank
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
@@ -70,7 +71,7 @@ auk134 | rnovak-Optiplex-980)
 	done
 	zpool create tank ${POOLNAMES}
 	zpool status tank
-	zfs set recordsize=1m
+	zfs set recordsize=1m tank
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
