@@ -4,7 +4,7 @@ then
 	luser=$1
 else
 	echo "Missing username"
-	echo "${0##*/} <username>
+	echo "${0##*/} <username>"
 	exit -1
 fi
 #######################################################################
@@ -38,12 +38,14 @@ case $(hostname) in
 slag5)
 	zpool create tank /dev/disk/by-vdev/U?
 	zpool status tank
+	zfs set recordsize=1m
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
 slag6)
 	zpool create tank /dev/disk/by-vdev/U1?
 	zpool status tank
+	zfs set recordsize=1m
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
@@ -68,6 +70,7 @@ auk134 | rnovak-Optiplex-980)
 	done
 	zpool create tank ${POOLNAMES}
 	zpool status tank
+	zfs set recordsize=1m
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
