@@ -14,11 +14,11 @@ else
 fi
 case $(hostname) in
 slag5 | slag6 | auk134 | corona* )
-	cd $HOME/..
+	cd /g/g0
 	/usr/bin/time find ${luser} -print | cpio -pdm /tank
 	;;
 OptiPlex980)
-	cd ~/Dropbox/
+	cd /home/${luser}/Dropbox/
 	/usr/bin/time find AAA_My_Jobs -print | cpio -pdmv /tank
 	;;
 \?)
