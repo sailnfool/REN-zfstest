@@ -34,7 +34,7 @@ else
 	chown ${luser} /root/.bashrc.${luser}.save
 fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
-
+echo "We are on  $(hostname)"
 case $(hostname) in
 slag5)
 	zpool create tank /dev/disk/by-vdev/U?
@@ -50,7 +50,8 @@ slag6)
 	chown ${luser} /tank
 	chgrp ${luser} /tank
 	;;
-auk134 | rnovak-Optiplex-980)
+auk134)
+	echo "We are on $(hostname)"
 	if [ ! -d /zpool ]
 	then
 		mkdir -p /zpool
@@ -69,6 +70,35 @@ auk134 | rnovak-Optiplex-980)
 	  fi
 	  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done
+	zpool create tank ${POOLNAMES}
+	zpool status tank
+	zfs set recordsize=1m tank
+	chown ${luser} /tank
+	chgrp ${luser} /tank
+	;;
+OptiPlex980)
+	echo "We are on $(hostname)"
+	if [ ! -d /zpool ]
+	then
+		mkdir -p /zpool
+	 	chown ${luser} /zpool
+	 	chgrp ${luser} /zpool
+	fi
+	####################
+	# create 8 files of 8GB each for a total pool size of 64GB
+	####################
+	ZPOOL=/zpool/file
+	set +x
+	for i in 1 2 3 4 5 6 7 8
+	do
+	  if [ ! -f ${ZPOOL}${i} ]
+	  then
+		echo "Building ${ZPOOL}${i}"
+	    dd if=/dev/zero of=${ZPOOL}${i} bs=1G count=8 &> /dev/null 
+	  fi
+	  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
+	done
+	wait
 	zpool create tank ${POOLNAMES}
 	zpool status tank
 	zfs set recordsize=1m tank
