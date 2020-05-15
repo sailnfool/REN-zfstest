@@ -9,6 +9,7 @@ EXECDIR := $(PREFIX)/bin
 
 .PHONY: clean uninstall all
 all: $(INSTALL)
+	make uninstall install clean
 install: $(INSTALL)
 	mkdir -p $(EXECDIR)
 	install -o $(USER) -C $? $(EXECDIR)
