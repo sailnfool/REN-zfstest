@@ -122,11 +122,31 @@ else
 fi
 case $(hostname) in
 slag5 | slag6 | auk134 | corona* )
-	if [ ! -d ${pooldir}/${luser} ]
+#	if [ ! -d ${pooldir}/${luser} ]
+#	then
+#		cd /g/g0
+#		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
+#	fi
+	targetpath=${pooldir}
+	existingsize-$(zfs get recordsize ${pool} | awk ${pool}/{print \ \$3})
+	numericsize=$(nice2num ${existingsize})
+	if [ -z "${numericsize}" ]
 	then
-		cd /g/g0
-		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
+		numericsize=128*${__kbibibyte}
 	fi
+	gen_blocksize=9 # 2**9=512
+	((recordsize=2**gen_blocksize))
+	for filenum in $(gen_reange 0 ${max_files})
+	do
+		if [ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} ]
+		then
+			gen_blocksize=9
+		fi
+		if [ ${recordsize} -ge ${numericsize} ]
+		then
+			gen_blocksiz=9
+		fi
+		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 	;;
 OptiPlex980)
 	targetdir=AAA_My_Jobs
@@ -146,7 +166,8 @@ OptiPlex980)
 	((recordsize=2**gen_blocksize))
 	for filenum in $(gen_range 0 ${max_files})
 	do
-		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || ${recordsize} -ge ${numericsize}  ]]
+		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || \
+			${recordsize} -ge ${numericsize}  ]]
 		then
 			gen_blocksize=9
 		fi
