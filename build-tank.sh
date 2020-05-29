@@ -2,7 +2,8 @@
 source func.errecho
 source func.genrange
 #######################################################################
-# Author: Robert E. Novak # email: novak5@llnl.gov, sailnfool@gmail.com
+# Author: Robert E. Novak
+# email: novak5@llnl.gov, sailnfool@gmail.com
 #
 # create a zpool in the root directory of the current drive. If this
 # gets more usage, make the location of the pool a parameter to this
@@ -45,18 +46,20 @@ function slaglists() {
 		exit -1
 	fi
 }
-USAGE="\n${0##*/} [-hdvf:] <username> [ssd path1 ...]\n
+USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] <username> [ssd path1 ...]\n
 \t\tbuild a zfs tank from files or from existing devices\n
 \t-h\t\tPrint this message\n
 \t-d\t\tTurn on diagnostics (set -x)\n
+\t-b\t<blksize>\tThe size of the blocks dd will use for creating file\n
+\t\t\tvdevs, see dd documentation for specifying sizes\n
 \t-f\t<#>\tNumber of plain files to initialize and use for vdev\n
 \t\t\tDefault is 8 files of 8 GB each.\n
 \t-p\t<pool>\tName of the pool to be created\n
 \t\t\tThe default name is tank\n
+\t-v\t\tList of devices on the command line\n
 \t-x\t<vdev-prefix>\n
 \t\t\tNote that the files will be in /<vdev-prefix>-files\n
 \t\t\tif file vdevs are used.\n
-\t-v\t\tList of devices on the command line\n
 "
 
 ####################
@@ -80,7 +83,7 @@ pooldir="/${pool}"
 bs=1G
 
 vdevsdir="/vdevs"
-vdevsfiledir=${vdevsdir}/files
+vdevsfiledir="${vdevsdir}/files"
 vdevlist=""
 poolspecified=0
 vdevsspecified=0
@@ -90,8 +93,8 @@ while getopts ${optionargs} name
 do
 	case ${name} in
 	h)
-#		errecho "-e" ${USAGE}
-		echo -en "${USAGE}"
+		errecho "-e" ${USAGE}
+#		echo -e "${USAGE}"
 		exit 0
 		;;
 	b)
@@ -150,10 +153,9 @@ else
 	chown ${luser} /root/.bashrc.${luser}.save
 fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
-echo "We are on  $(hostname)"
 case $(hostname) in
 slag5)
-	slaglists()
+	$(slaglists) 2>&1 > /dev/null
 	if [ ${vdevsspecified} -eq 0 ]
 	then
 		zpool create ${pool} ${slag5list}
@@ -166,7 +168,7 @@ slag5)
 	fi
 	;;
 slag6)
-	slaglists()
+	$(slaglists) 2>&1 > /dev/null
 	zpool create ${pool} ${slag6list}
 	zpool status ${pool}
 	zfs set recordsize=1m ${pool}
@@ -184,7 +186,7 @@ auk134)
 	####################
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
-	for i in $(genrange 1 ${num_vdevs})
+	for i in $(gen_range 0 ${num_vdevs})
 	do
 	  if [ ! -f ${vdevsfiledir}/file-${i} ]
 	  then
@@ -202,6 +204,7 @@ OptiPlex980)
 	echo "We are on $(hostname)"
 	if [ ! -d ${vdevsfiledir} ]
 	then
+		errecho "Building vdevsfiledir=${vdevsfiledir}"
 		mkdir -p ${vdevsfiledir}
 	 	chown ${luser} ${vdevsfiledir}
 	 	chgrp ${luser} ${vdevsfiledir}
@@ -210,20 +213,21 @@ OptiPlex980)
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
 	ZPOOL=${vdevsfiledir}/file
-	set +x
-	for i in $(genrange 1 ${num_devs})
+	for i in $(gen_range 0 ${num_vdevs})
 	do
-	  if [ ! -f ${ZPOOL}${i} ]
-	  then
-		echo "Building ${ZPOOL}${i}"
-	    dd if=/dev/zero of=${ZPOOL}${i} bs=1G count=8 &> /dev/null 
-	  fi
-	  POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
+		if [ ! -f ${ZPOOL}${i} ]
+		then
+			errecho "Building ${ZPOOL}${i}"
+			dd if=/dev/zero of=${ZPOOL}${i} bs=1G \
+			    count=8 &> /dev/null
+		fi
+		POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done
-	wait
-	zpool create tank ${POOLNAMES}
-	zpool status tank
-	zfs set recordsize=1m tank
+	errecho "Creating pool=${pool} with ${POOLNAMES}"
+	zpool create ${pool} ${POOLNAMES}
+	zpool status ${pool}
+	errecho "Setting recordsize=1m on ${pool}"
+	zfs set recordsize=1m ${pool}
 	chown ${luser} ${pooldir}
 	chgrp ${luser} ${pooldir}
 	;;
