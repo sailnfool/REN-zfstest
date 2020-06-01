@@ -1,8 +1,8 @@
-#!/bin/bash
-source func.errecho
-source func.genrange
-source func.kbytes
-source func.nice2num
+#!/bin/ksh
+source func.kerrecho
+source func.kgenrange
+source func.kkbytes
+source func.knice2num
 #######################################################################
 # Author: Rober E. Novak
 # email: novak5@llnl.gov, sailnfool@gmail.com
@@ -135,18 +135,28 @@ slag5 | slag6 | auk134 | corona* )
 		numericsize=128*${__kbibibyte}
 	fi
 	gen_blocksize=9 # 2**9=512
-	((recordsize=2**gen_blocksize))
+	recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 	for filenum in $(gen_reange 0 ${max_files})
 	do
-		if [ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} ]
+		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} \
+			|| ${recordsize} -ge ${numericsize} ]]
 		then
 			gen_blocksize=9
 		fi
-		if [ ${recordsize} -ge ${numericsize} ]
-		then
-			gen_blocksiz=9
-		fi
 		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
+		if [ ! -d ${pooldir}/B_${recordsize} ]
+		then
+			zfs create ${pool}/B_${recordsize}
+			zfs set recordsize=${recordsize} \
+			    ${pool}/B_${recordsize}
+			chown ${luser} ${pooldir}/B_${recordsize}
+			chgrp ${luser} ${pooldir}/B_${recordsize}
+		fi
+		dd if=/dev/urandom \
+		    of=${pooldir}/B_${recordsize}/file_${filenum} \
+		    bs=${recordsize} count=512 iflag=fullblock
+		gen_blocksize=${gen_blocksize} + 1
+	done
 	;;
 OptiPlex980)
 	targetdir=AAA_My_Jobs
@@ -160,10 +170,10 @@ OptiPlex980)
 	numericsize=$(nice2num ${existingsize})
 	if [ -z "${numericsize}" ]
 	then
-		((numericsize=128*__kibibyte))
+		numericsize=128*${__kibibyte}
 	fi
 	gen_blocksize=9
-	((recordsize=2**gen_blocksize))
+	recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 	for filenum in $(gen_range 0 ${max_files})
 	do
 		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || \
@@ -171,7 +181,7 @@ OptiPlex980)
 		then
 			gen_blocksize=9
 		fi
-		((recordsize=2**gen_blocksize))
+		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 		if [ ! -d ${pooldir}/B_${recordsize} ]
 		then
 			zfs create ${pool}/B_${recordsize}
@@ -183,9 +193,8 @@ OptiPlex980)
 		dd if=/dev/urandom \
 		    of=${pooldir}/B_${recordsize}/file_${filenum} \
 		    bs=${recordsize} count=512 iflag=fullblock
-		((gen_blocksize++))
+		gen_blocksize=${gen_blocksize} + 1
 	done
-
 	;;
 \?)
 	cd ~/Dropbox/
