@@ -107,7 +107,7 @@ do
 	esac
 done
 shift "$(($OPTIND - 1 ))"
-if [ $EUID != 0 ]
+if [ $(id -u) != 0 ]
 then
 	echo "Not root"
 	exit -1
@@ -128,22 +128,23 @@ slag5 | slag6 | auk134 | corona* )
 #		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
 #	fi
 	targetpath=${pooldir}
-	existingsize-$(zfs get recordsize ${pool} | awk ${pool}/{print \ \$3})
+	existingsize=$(zfs get recordsize ${pool} | \
+		awk /${pool}/{print\ \$3})
 	numericsize=$(nice2num ${existingsize})
 	if [ -z "${numericsize}" ]
 	then
 		numericsize=128*${__kbibibyte}
 	fi
-	let gen_blocksize=9 # 2**9=512
-	recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
-	for filenum in $(gen_reange 0 ${max_files})
+	let gen_blocksize=9 
+	recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
+	for filenum in $(gen_range 0 ${max_files})
 	do
 		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} || \
 			${recordsize} -ge ${numericsize} ]]
 		then
 			let gen_blocksize=9
 		fi
-		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
+		recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
 		if [ ! -d ${pooldir}/B_${recordsize} ]
 		then
 			zfs create ${pool}/B_${recordsize}
@@ -156,6 +157,7 @@ slag5 | slag6 | auk134 | corona* )
 		    of=${pooldir}/B_${recordsize}/file_${filenum} \
 		    bs=${recordsize} count=1024 iflag=fullblock
 		((gen_blocksize++))
+		echo "Completed ${filenum} of ${max_files}"
 	done
 	;;
 OptiPlex980)
@@ -173,7 +175,7 @@ OptiPlex980)
 		numericsize=128*${__kibibyte}
 	fi
 	gen_blocksize=9
-	recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
+	recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
 	for filenum in $(gen_range 0 ${max_files})
 	do
 		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || \
@@ -181,7 +183,7 @@ OptiPlex980)
 		then
 			let gen_blocksize=9
 		fi
-		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
+		recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
 		if [ ! -d ${pooldir}/B_${recordsize} ]
 		then
 			zfs create ${pool}/B_${recordsize}
