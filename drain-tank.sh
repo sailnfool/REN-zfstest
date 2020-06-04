@@ -80,11 +80,10 @@ then
 fi
 case $(hostname) in
 slag5 | slag6 | auk134 | corona* )
-	if [ ! -d ${pooldir}/${luser} ]
-	then
-		cd /g/g0
-		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
-	fi
+	zfs destroy -r ${pool}
+	cd /
+	zpool destroy ${pool}
+	rm -rf ${pooldir} /vdevs
 	;;
 OptiPlex980)
 	zfs destroy -r ${pool}

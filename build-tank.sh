@@ -23,21 +23,23 @@ source func.genrange
 # for persistent naming affiliated with their rack locations.
 ####################
 function slaglists() {
+	rm -rf /tmp/slag*.txt
 	slagdir="/dev/disk/by-vdev/"
 	slagssdprefix="U"
 	slagssdlist=/tmp/slagssdlist.$$.txt
 	slag5list=/tmp/slag5list.$$.txt
 	slag6list=/tmp/slag6list.$$.txt
 	slagtmplist=/tmp/slagtmplist.$$.txt
-	pushd ${slagdir}
+	cd ${slagdir}
 	ls ${slagssdprefix}* > ${slagssdlist}
-	count=$(wc -l ${slagssdlist})
+	count=$(cat ${slagssdlist} | wc -l)
 	((countfor5=count / 2))
-	((countfor6=count - countfor6))
+	((countfor6=count - countfor5))
 	head -${countfor5} ${slagssdlist} > ${slag5list}
 	tail -${countfor6} ${slagssdlist} > ${slag6list}
 	cat ${slag5list} ${slag6list} > ${slagtmplist}
-	if [ cmp -s ${slagssdlist} ${slagtmplist} ]
+	cmp -s ${slagssdlist} ${slagtmplist} 2>&1 > /dev/null
+	if [ $? -ne 0 ]
 	then
 		errecho "Mismatch in generated devlists"
 		errecho "${slagssdist}"
@@ -155,14 +157,30 @@ fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
 case $(hostname) in
 slag5)
+	rm -rf /tmp/slag*.txt
+	slagdir="/dev/disk/by-vdev/"
+	slagssdprefix="U"
+	slagssdlist=/tmp/slagssdlist.$$.txt
+	slag5list=/tmp/slag5list.$$.txt
+	slag6list=/tmp/slag6list.$$.txt
+	slagtmplist=/tmp/slagtmplist.$$.txt
 	$(slaglists) 2>&1 > /dev/null
 	if [ ${vdevsspecified} -eq 0 ]
 	then
-		zpool create ${pool} ${slag5list}
+		set -x
+		slagdir="/dev/disk/by-vdev/"
+		echo "zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})"
+		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})
+		for loopdev in $(tail -n +2 ${slag5list})
+		do
+			echo "zpool add ${pool} ${slagdir}/${loopdev}"
+			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
+		done
 		zpool status ${pool}
 		zfs set recordsize=1m ${pool}
 		chown ${luser} ${pooldir}
 		chgrp ${luser} ${pooldir}
+		set +x
 	else
 		zpool create ${pool} 
 	fi

@@ -134,14 +134,14 @@ slag5 | slag6 | auk134 | corona* )
 	then
 		numericsize=128*${__kbibibyte}
 	fi
-	gen_blocksize=9 # 2**9=512
+	let gen_blocksize=9 # 2**9=512
 	recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 	for filenum in $(gen_reange 0 ${max_files})
 	do
-		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} \
-			|| ${recordsize} -ge ${numericsize} ]]
+		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} || \
+			${recordsize} -ge ${numericsize} ]]
 		then
-			gen_blocksize=9
+			let gen_blocksize=9
 		fi
 		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 		if [ ! -d ${pooldir}/B_${recordsize} ]
@@ -154,8 +154,8 @@ slag5 | slag6 | auk134 | corona* )
 		fi
 		dd if=/dev/urandom \
 		    of=${pooldir}/B_${recordsize}/file_${filenum} \
-		    bs=${recordsize} count=512 iflag=fullblock
-		gen_blocksize=${gen_blocksize} + 1
+		    bs=${recordsize} count=1024 iflag=fullblock
+		((gen_blocksize++))
 	done
 	;;
 OptiPlex980)
@@ -179,7 +179,7 @@ OptiPlex980)
 		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || \
 			${recordsize} -ge ${numericsize}  ]]
 		then
-			gen_blocksize=9
+			let gen_blocksize=9
 		fi
 		recordsize=$(echo '2 ** ${gen_blocksize}'|bc)
 		if [ ! -d ${pooldir}/B_${recordsize} ]
@@ -193,7 +193,7 @@ OptiPlex980)
 		dd if=/dev/urandom \
 		    of=${pooldir}/B_${recordsize}/file_${filenum} \
 		    bs=${recordsize} count=512 iflag=fullblock
-		gen_blocksize=${gen_blocksize} + 1
+		((gen_blocksize++))
 	done
 	;;
 \?)
