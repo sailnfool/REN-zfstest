@@ -160,7 +160,7 @@ slag5 | slag6 | auk134 | corona* )
 		echo "Completed ${filenum} of ${max_files}"
 	done
 	;;
-OptiPlex980)
+OptiPlex980|Inspiron3185)
 	targetdir=AAA_My_Jobs
 	targetpath=${pooldir}
 # 	if [ ! -d ${pooldir}/AAA_My_Jobs ]

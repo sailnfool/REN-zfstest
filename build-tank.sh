@@ -63,6 +63,7 @@ USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] 
 \t\t\tNote that the files will be in /<vdev-prefix>-files\n
 \t\t\tif file vdevs are used.\n
 "
+		set -x
 
 ####################
 # The default tank name is tank.  The resulting ZFS directory will
@@ -157,6 +158,7 @@ fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
 case $(hostname) in
 slag5)
+	echo "We are on $(hostname)"
 	rm -rf /tmp/slag*.txt
 	slagdir="/dev/disk/by-vdev/"
 	slagssdprefix="U"
@@ -167,7 +169,6 @@ slag5)
 	$(slaglists) 2>&1 > /dev/null
 	if [ ${vdevsspecified} -eq 0 ]
 	then
-		set -x
 		slagdir="/dev/disk/by-vdev/"
 		echo "zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})"
 		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})
@@ -180,12 +181,12 @@ slag5)
 		zfs set recordsize=1m ${pool}
 		chown ${luser} ${pooldir}
 		chgrp ${luser} ${pooldir}
-		set +x
 	else
 		zpool create ${pool} 
 	fi
 	;;
 slag6)
+	echo "We are on $(hostname)"
 	$(slaglists) 2>&1 > /dev/null
 	zpool create ${pool} ${slag6list}
 	zpool status ${pool}
