@@ -218,7 +218,7 @@ auk134)
 	chown ${luser} ${pooldir}
 	chgrp ${luser} ${pooldir}
 	;;
-OptiPlex980)
+OptiPlex980|Inspiron3185)
 	echo "We are on $(hostname)"
 	if [ ! -d ${vdevsfiledir} ]
 	then
