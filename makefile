@@ -4,7 +4,8 @@ PREFIX2?=/tftpboot/global/novak5
 .sh:
 	@rm -f $@
 	cp $< $@
-INSTALL = build-tank setup-intree test-intree zdb-hist fill-tank
+INSTALL = build-tank setup-intree test-intree zdb-hist fill-tank \
+	  drain-tank
 
 EXECDIR2=$(PREFIX2)/bin
 EXECDIR := $(PREFIX)/bin
