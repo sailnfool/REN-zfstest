@@ -55,7 +55,7 @@ OS_REVISION=$(lsb_release -r | cut -f 2)
 ####################
 host=$(hostname)
 case ${host} in
-jet*)
+slagi|jet*)
 	ZFSPARENT="/tftpboot/global/novak5/github"
 	;;
 *)
