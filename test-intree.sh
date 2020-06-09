@@ -52,17 +52,23 @@ OS_REVISION=$(lsb_release -r | cut -f 2)
 # However, 
 ####################
 host=$(hostname)
-if [ "${host}" = "slagi" ]
-then
+case ${host} in
+jet*)
 	ZFSPARENT="/tftpboot/global/novak5/github"
-else
+	;;
+*)
 	ZFSPARENT="$HOME/github"
-fi
+	;;
+esac
 mkdir -p ${ZFSPARENT}
 
-errecho ${0##*/} ${LINENO} "Working from host $host"
-errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_RELEASE}"
-errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_REVISION}"
+errecho "Working from host $host"
+errecho "Working with OS Release ${OS_RELEASE}"
+errecho "Working with OS Release ${OS_REVISION}"
+if [ -r /etc/toss-release ]
+then
+	errecho "This is a TOSS system $(cat /etc/toss-release)"
+fi
 
 optionargs="hn"
 while getopts ${optionargs} name
@@ -97,7 +103,7 @@ then
 	echo "Could not find ${ZFSDIR}"
 	exit 1
 fi
-errecho ${0##*/} $LINENO "Working with zfs in ${ZFSDIR}"
+errecho "Working with zfs in ${ZFSDIR}"
 cd ${ZFSDIR}
 if [ "${skip_get_branch}" = 0 ]
 then
@@ -112,7 +118,7 @@ then
 		printf "%4d\t%s\n" ${branchnumber} ${branchname}
 		((branchnumber++))
 	done < /tmp/zfs_branches.$$.txt
-	read -p "Which Branch Number: " choice
+	read -p "Which Branch Number [1]: " choice
 	rm -f /tmp/zfs_branches.$$.txt
 
 	####################
@@ -151,11 +157,12 @@ make -s -j$(nproc)
 # This list of packages is also dependent on the release on which
 # the test is being performed (Ubuntu, RHEL 7, etc.)
 ####################
-slagnames='slag.*'
-if [[ ! "${host}" =~ ${slagnames} ]]
+slagname='slag[i0-9][0-9]*'
+jetname='jet[i0-9][0-9]*'
+if [[ ! "${host}" =~ ${slagname} && \
+	! "${host}" =~ ${jetname} ]]
 then
-	errecho ${0##*/} ${LINENO} \
-		"We are on host ${host} not a slag node"
+	errecho "We are on host ${host} not a slag/jet node"
 	case ${OS_RELEASE} in
 	Ubuntu | Debian)
 		sudo apt install ksh bc fio acl sysstat mdadm lsscsi \
@@ -186,17 +193,21 @@ then
 		####################
 		# Do Nothing for TOSS servers
 		####################
+		if [[ ! -r /etc/toss-release ]]
+		then
+			errecho "Red Hat Enterprise Server but not " \
+			    "a TOSS release\n"
+			exit 1
+		fi
 		;;
 
 	\?) #Invalid
-		errecho "$-e" ${FUNCNAME} ${LINENO} \
-		    "Unknown Operating System ${OS_RELEASE}"
+		errecho "Unknown Operating System ${OS_RELEASE}"
 		exit 1
 		;;
 	esac
 else
-	errecho ${0##*/} ${LINENO} \
-		"No update to tools required for zfs on TOSS"
+	errecho "No update to tools required for zfs on TOSS"
 fi
 #
 # zfs-helper.sh: Certain functionality (i.e. /dev/zvol/) depends

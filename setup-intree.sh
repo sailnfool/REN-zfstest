@@ -27,8 +27,6 @@ USAGE="\r\n${0##*/} [-hus] [-r <repo>]\r\n
 \t-s\t\tClone from the standard OpenZFS repository\r\n
 \t-r\t<repo>\tClone from <repo>
 "
-optionargs="hur:s"
-NUMARGS=0
 NUMARGS=0
 if [ "${NUMARGS}" -gt 0 ]
 then
@@ -56,19 +54,25 @@ OS_REVISION=$(lsb_release -r | cut -f 2)
 # However, 
 ####################
 host=$(hostname)
-if [ "${host}" = "slagi" ]
-then
+case ${host} in
+jet*)
 	ZFSPARENT="/tftpboot/global/novak5/github"
-	mkdir -p ${ZFSPARENT}
-else
+	;;
+*)
 	ZFSPARENT="$HOME/github"
+	;;
+esac
+mkdir -p ${ZFSPARENT}
+
+errecho "Working from host $host"
+errecho "Working with OS Release ${OS_RELEASE}"
+errecho "Working with OS Revision ${OS_REVISION}"
+if [ -r /etc/toss-release ]
+then
+	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-errecho ${0##*/} ${LINENO} "Working from host $host"
-errecho ${0##*/} ${LINENO} "Working with OS Release ${OS_RELEASE}"
-errecho ${0##*/} ${LINENO} "Working with OS Revision ${OS_REVISION}"
-
-
+optionargs="hur:s"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -93,7 +97,9 @@ do
 	esac
 done
 slagname='slag[i0-9][0-9]*'
-if [[ ! "${host}" =~ ${slagname} ]]
+jetname='jet[i0-9][0-9]*'
+if [[ ! "${host}" =~ ${slagname} && \
+	! "${host}" =~ ${jetname} ]]
 then
 	errecho ${0##*/} ${LINENO} "Installing tools required for zfs"
 	case ${OS_RELEASE} in
@@ -154,17 +160,21 @@ then
 			####################
 			# DO NOTHING.  	TOSS Servers need no changes
 			####################
+			if [[ ! -r /etc/toss-release ]]
+			then
+				errecho "Red Hat Enterprise Server but not " \
+				    "a TOSS release\n"
+				exit 1
+			fi
 			;;
 
 		\?) #Invalid
-			errecho "$-e" ${FUNCNAME} ${LINENO} \
-			  	"Unknown Operating System ${OS_RELEASE}"
+			errecho "Unknown Operating System ${OS_RELEASE}"
 			exit 1
 			;;
 	esac
 else
-	errecho ${0##*/} ${LINENO} \
-		"No update to tools required for zfs on TOSS"
+	errecho "No update to tools required for zfs on TOSS"
 fi
 ####################
 # The assumption here is that we are cloning into a github subdirectory
