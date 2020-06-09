@@ -77,7 +77,7 @@ while getopts ${optionargs} name
 do
 	case ${name} in
 		h)
-			errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+			errecho -e ${USAGE}
 			exit 0
 			;;
 		u)
@@ -90,8 +90,8 @@ do
 			REPO=${OPTARG}
 			;;
 		\?)
-			errecho "-e" ${0##*/} ${LINENO} "invalid option: -${OPTARG}"
-			errecho "-e" ${0##*/} ${LINENO} ${USAGE}
+			errecho "-e" "invalid option: -${OPTARG}"
+			errecho "-e" ${USAGE}
 			exit 1
 			;;
 	esac
@@ -101,7 +101,7 @@ jetname='jet[i0-9][0-9]*'
 if [[ ! "${host}" =~ ${slagname} && \
 	! "${host}" =~ ${jetname} ]]
 then
-	errecho ${0##*/} ${LINENO} "Installing tools required for zfs"
+	errecho "Installing tools required for zfs"
 	case ${OS_RELEASE} in
 		Ubuntu | Debian )
 			sudo apt install build-essential autoconf \
