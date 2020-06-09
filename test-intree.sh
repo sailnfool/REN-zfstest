@@ -120,6 +120,10 @@ then
 	done < /tmp/zfs_branches.$$.txt
 	read -p "Which Branch Number [1]: " choice
 	rm -f /tmp/zfs_branches.$$.txt
+	if [ -z "${choice}" ]
+	then
+		choice=1
+	fi
 
 	####################
 	# No matter the source, by default load the master branch,
