@@ -22,10 +22,11 @@ USAGE="\r\n${0##*/} [-hus] [-r <repo>]\r\n
 \t\tgives the option to select the [standard] default OpenZFS\r\n
 \t\trepository and -r lets the user specify an alternate repository\r\n
 \t-h\t\tPrint this message\r\n
-\t-u\t\tUse the existing clone of the last repository deposited\r\n
+\t-c\t\tUse the existing clone of the last repository deposited\r\n
 \t\t\tin \$HOME/github/zfs without reloading from a repository\r\n
 \t-s\t\tClone from the standard OpenZFS repository\r\n
-\t-r\t<repo>\tClone from <repo>
+\t-r\t<repo>\tClone from <repo>\r\n
+\t-u\t\tRunning in User Mode, no need for kernel modules\r\n
 "
 NUMARGS=0
 if [ "${NUMARGS}" -gt 0 ]
@@ -39,6 +40,7 @@ REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
 REPO_STANDARD="https://github.com/openzfs/zfs"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
+user_mode_only=0
 LAST_BRANCH=$HOME/.zfs_last_branch
 
 ####################
@@ -72,7 +74,7 @@ then
 	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-optionargs="hur:s"
+optionargs="hcr:su"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -80,7 +82,7 @@ do
 			errecho -e ${USAGE}
 			exit 0
 			;;
-		u)
+		c)
 			use_existing_clone=1
 			;;
 		s)
@@ -88,6 +90,9 @@ do
 			;;
 		r)
 			REPO=${OPTARG}
+			;;
+		u)
+			user_mode_only=1
 			;;
 		\?)
 			errecho "-e" "invalid option: -${OPTARG}"
@@ -190,7 +195,8 @@ cd ${ZFSPARENT}
 # to avoid contamination with mixed modules.
 ####################
 LOAD_UNLOAD_SCRIPT="./scripts/zfs.sh"
-if [ -f ${ZFSHOME}/${LOAD_UNLOAD_SCRIPT} ]
+if [[ -f ${ZFSHOME}/${LOAD_UNLOAD_SCRIPT} && \
+	"user_mode_only" = "0" ]]
 then
 	cd ${ZFSHOME}
 	echo "Super user required to unload old kernel modules"
