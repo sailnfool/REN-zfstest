@@ -40,7 +40,7 @@ fi
 
 skip_get_branch=0
 reconfigure=1
-user_space_only=0
+user_space=""
 
 ####################
 # Find out what operating system we are running
@@ -85,7 +85,7 @@ do
 		skip_get_branch=1
 		;;
 	u)
-		user_space_only=1
+		user_space="--with-config=user"
 		;;
 	\?)
 		errecho "-e" ${0##*/} ${LINENO} "invalid option: -${OPTARG}"
@@ -155,12 +155,6 @@ fi
 ####################
 # Now we return to the building of ZFS
 ####################
-if [ "{user_space_only}" -eq "1" ]
-then
-	user_space="--with-config=user"
-else
-	user_space=""
-fi
 if [ "${reconfigure}" -eq "1" ]
 then
 	configtxt=/tmp/zfs.$$.config.txt
