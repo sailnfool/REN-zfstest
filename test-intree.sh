@@ -170,6 +170,7 @@ then
 	grep "checking kernel source directory" ${configtxt} >> ${kerneltxt}
 	grep "checking kernel build directory" ${configtxt} >> ${kerneltxt}
 	grep "checking kernel source version" ${configtxt} >> ${kerneltxt}
+	uname -r >> ${kerneltxt}
 fi
 make -s -j$(nproc)
 
