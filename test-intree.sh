@@ -26,6 +26,7 @@ USAGE="\r\n${0##*/} [-hn]\r\n
 \t\trepository and -r lets the user specify an alternate repository\r\n
 \t-h\t\tPrint this message\r\n
 \t-n\t\tSkip requesting which branch (no branch) to test\r\n
+\t-u\t\tConfigure build for user space only\r\n
 "
 
 NUMARGS=0
@@ -38,6 +39,8 @@ then
 fi
 
 skip_get_branch=0
+reconfigure=1
+user_space_only=0
 
 ####################
 # Find out what operating system we are running
@@ -70,7 +73,7 @@ then
 	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-optionargs="hn"
+optionargs="hnu"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -80,6 +83,9 @@ do
 		;;
 	n)
 		skip_get_branch=1
+		;;
+	u)
+		user_space_only=1
 		;;
 	\?)
 		errecho "-e" ${0##*/} ${LINENO} "invalid option: -${OPTARG}"
@@ -149,10 +155,21 @@ fi
 ####################
 # Now we return to the building of ZFS
 ####################
+if [ "{user_space_only}" -eq "1" ]
+then
+	user_space="--with-config=user"
+else
+	user_space=""
+fi
 if [ "${reconfigure}" -eq "1" ]
 then
+	configtxt=/tmp/zfs.$$.config.txt
+	kerneltxt=/tmp/zfs.$$.kernel.txt
 	sh autogen.sh
-	./configure
+	./configure ${user_space} 2>&1 | tee ${configtxt}
+	grep "checking kernel source directory" ${configtxt} >> ${kerneltxt}
+	grep "checking kernel build directory" ${configtxt} >> ${kerneltxt}
+	grep "checking kernel source version" ${configtxt} >> ${kerneltxt}
 fi
 make -s -j$(nproc)
 
