@@ -9,7 +9,7 @@ jet*)
     RESULTS=$HOME/bench_results/${BENCH}
     ;;
 esac
-mkdir -P ${RESULTS}
+mkdir -p ${RESULTS}
 echo "${0##*/}: We are on ${host} and will place results in directory ${RESULTS}"
 echo "/bin/time zdb -bbb ${host} |  tee  ${RESULTS}/${host}.dumpbbb.txt"
 /bin/time zdb -bbb ${host} 2> ${RESULTS}/${host}/timer.txt | \
