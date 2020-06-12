@@ -12,6 +12,8 @@ esac
 mkdir -P ${RESULTS}
 echo "${0##*/}: We are on ${host} and will place results in directory ${RESULTS}"
 echo "/bin/time zdb -bbb ${host} |  tee  ${RESULTS}/${host}.dumpbbb.txt"
-/bin/time zdb -bbb ${host} |  tee  ${RESULTS}/${host}.dumpbbb.txt
+/bin/time zdb -bbb ${host} 2> ${RESULTS}/${host}/timer.txt | \
+	tee  ${RESULTS}/${host}.dumpbbb.txt
 echo "/bin/time zdb -Pbbb ${host} | tee  ${RESULTS}/${host}.dumpPbbb.txt"
-/bin/time zdb -Pbbb ${host} | tee  ${RESULTS}/${host}.dumpPbbb.txt
+/bin/time zdb -Pbbb ${host} 2> ${RESULTS}/${host}/timerP.txt | \
+	tee  ${RESULTS}/${host}.dumpPbbb.txt
