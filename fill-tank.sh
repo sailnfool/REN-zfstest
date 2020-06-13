@@ -1,5 +1,6 @@
 #!/bin/ksh
 source func.kerrecho
+source func.kinsufficient
 source func.kgenrange
 source func.kkbytes
 source func.knice2num
@@ -15,7 +16,148 @@ source func.knice2num
 # the files to be created with dd commands and then copied into the
 # tank.
 #######################################################################
+function histo_get_pool_size
+{
+	if [ $# -ne 1 ]
+	then
+		insufficient 1
+	fi
+	typeset pool=$1
+	typeset -i pool_size=0
 
+	let pool_size=$(zpool list -p|awk "/${pool}/{print \ \$2}")
+
+	if [ -z "${pool_size}" ]
+	then
+		errecho "Could not retrieve the size of ${pool}"
+		exit -1
+	fi
+	echo ${pool_size}
+}
+
+SPA_MAXBLOCKSHIFT=24
+
+function populate_pool
+{
+	if [ $# -ne 1 ]
+	then
+		insufficient 1
+	fi
+	typeset pool=$1
+
+	set -A recordsizes
+	typeset -i pool_size=0
+	typeset -i recordsize
+	typeset -i min_recordsizebits=9 #512
+	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1 #16 MiB
+	typeset -i this_recordsize
+	typeset -i this_record_index
+	typeset -i sum_filesizes=0
+
+	let pool_size=$(get_pool_size ${pool}
+
+	for recordsize in gen_range(min_recordsizebits max_recordsizebits)
+	do
+		((recordsizes[recordsize]= 1ULL '<<' recordsize))
+		((sum_filesizes+=recordsizes[recordsize]))
+	done
+
+	((max_files=pool_size % sum_filesizes))
+
+	this_record_index=min_recordsizebits
+
+	for filenum in $(gen_range 0 ${max_files})
+	do
+		if [ this_record_index -gt max_recordsizebits ]
+		then
+			let this_record_index=min_recordsizebits
+		fi
+		let this_recordsize=recordsizes[this_record_index]
+		if [ ! -d ${pool}/B_${this_recordsize} ]
+		then
+			zfs create ${pool}/B_${this_recordsize}
+			zfs set recordsize=${this_recordsize} \
+			    ${pool}/B_{this_recordsize}
+		fi
+
+		####################
+		# Create the files in the devices and datasets of the
+		# right size.  The files are filled with random data
+		# to defeat the compression
+		# Alternatively we could use truncate for a faster
+		# file creation of sparse files.
+		####################
+		dd if=/dev/urandom \
+		    of=${pool}/B_${this_recordsize}/file_${filenum} \
+		    bs=${this_recordsize} count=1 iflag=fullblock
+
+		((this_record_index++))
+	done
+}
+
+function check_histo_test_pool
+{
+	if [ $# -ne 1 ]
+	then
+		log_fail \
+		"check_histo_test_pool insufficient parameters"
+	fi	
+	typeset pool=$1
+
+	set -A recordsizes
+	set -A recordcounts
+	typeset -i pool_size=0
+	typeset -i recordsize
+	typeset -i min_recordsizebits=9 #512
+	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1
+	typeset -i this_recordsize
+	typeset -i this_record_index
+	typeset -i sum_filesizes=0
+	typeset dumped
+	typeset stripped
+
+	let pool_size=$(get_pool_size ${pool}
+
+	for recordsize in gen_range(min_recordsizebits max_recordsizebits)
+	do
+		((recordsizes[recordsize]= 1ULL '<<' recordsize))
+		((sum_filesizes+=recordsizes[recordsize]))
+	done
+
+	dumped="/tmp/${pool}_dump.txt"
+	stripped="/tmp/${pool}_stripped.txt"
+
+	# log_must zdb -Pbbb ${pool} | \
+	zdb -Pbbb ${pool} | \
+	    tee ${dumped} | \
+	    sed -e '1,/^block[ 	][ 	]*psize[ 	][ 	]*lsize/d' \
+	    > ${stripped}
+
+	((max_files=pool_size % sum_filesizes))
+
+	this_record_index=min_recordsizebits
+
+	for filenum in $(gen_range 0 ${max_files})
+	do
+		if [ this_record_index -gt max_recordsizebits ]
+		then
+			let this_record_index=min_recordsizebits
+		fi
+		((recordcounts[this_record_index]++))
+
+		((this_record_index++))
+	done
+
+	errecho "Comparisons for ${pool}"
+	errecho "Blocksize\tCount\tpsize\tlsize\tasize"
+	for recordsize in gen_range(min_recordsizebits max_recordsizebit)
+	do
+		psize=$(awk "/${recordsize}/{print\ \$2}" < ${stripped}
+		lsize=$(awk "/${recordsize}/{print\ \$5}" < ${stripped}
+		asize=$(awk "/${recordsize}/{print\ \$8}" < ${stripped}
+		errecho "${recordsize}\t${recordcounst[${recordsize}]}\t${psize}\t${lsize}\t${asize}"
+	done
+}
 USAGE="\n${0##*/} [-hd] [-b blksize] [-p <pool>] [-f <#>]\n
 \t\tfill a zfs tank.  The default fills the default tank by doing a\n
 \t\tcpio of the user's home directory.  The options specify creating\n
@@ -118,6 +260,7 @@ then
 else
 	echo "Missing username"
 	echo "${0##*/} <user>"
+	echo "${USAGE}"
 	exit -1
 fi
 case $(hostname) in
