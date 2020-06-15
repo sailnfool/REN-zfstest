@@ -20,19 +20,19 @@ function histo_get_pool_size
 {
 	if [ $# -ne 1 ]
 	then
-		insufficient 1
+		$(insufficient 1)
 	fi
 	typeset pool=$1
-	typeset -i pool_size=0
+	real_pool_size=0
 
-	let pool_size=$(zpool list -p|awk "/${pool}/{print \ \$2}")
+	let real_pool_size=$(zpool list -p|awk "/${pool}/{print \$2}")
 
-	if [ -z "${pool_size}" ]
+	if [ -z "${real_pool_size}" ]
 	then
 		errecho "Could not retrieve the size of ${pool}"
 		exit -1
 	fi
-	echo ${pool_size}
+	echo ${real_pool_size}
 }
 
 SPA_MAXBLOCKSHIFT=24
@@ -41,12 +41,11 @@ function populate_pool
 {
 	if [ $# -ne 1 ]
 	then
-		insufficient 1
+		$(insufficient 1)
 	fi
 	typeset pool=$1
 
 	set -A recordsizes
-	typeset -i pool_size=0
 	typeset -i recordsize
 	typeset -i min_recordsizebits=9 #512
 	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1 #16 MiB
@@ -54,30 +53,38 @@ function populate_pool
 	typeset -i this_record_index
 	typeset -i sum_filesizes=0
 
-	let pool_size=$(get_pool_size ${pool}
+	my_pool_size=$(histo_get_pool_size ${pool})
 
-	for recordsize in gen_range(min_recordsizebits max_recordsizebits)
+	echo "my_pool_size=$my_pool_size"
+	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
 	do
-		((recordsizes[recordsize]= 1ULL '<<' recordsize))
-		((sum_filesizes+=recordsizes[recordsize]))
+		recordsizes[$recordsize]=$(echo "2 ^ ${recordsize}" | bc)
+		((sum_filesizes+=recordsizes[$recordsize]))
 	done
 
-	((max_files=pool_size % sum_filesizes))
+	max_pool_record_size=$(zfs get -p recordsize ${pool})
 
+	((max_files=my_pool_size % sum_filesizes))
 	this_record_index=min_recordsizebits
 
 	for filenum in $(gen_range 0 ${max_files})
 	do
-		if [ this_record_index -gt max_recordsizebits ]
+		let this_recordsize=recordsizes[${this_record_index}]
+		if [[ this_record_index -gt max_recordsizebits || \
+			${this_recordsize} -gt ${max_pool_record_size} ]]
 		then
 			let this_record_index=min_recordsizebits
+			let this_recordsize=recordsizes[${this_record_index}]
 		fi
-		let this_recordsize=recordsizes[this_record_index]
 		if [ ! -d ${pool}/B_${this_recordsize} ]
 		then
+
+			echo "zfs create ${pool}/B_${this_recordsize}"
 			zfs create ${pool}/B_${this_recordsize}
+			echo "zfs set recordsize=${this_recordsize} " \
+			    "${pool}/B_${this_recordsize}"
 			zfs set recordsize=${this_recordsize} \
-			    ${pool}/B_{this_recordsize}
+			    ${pool}/B_${this_recordsize}
 		fi
 
 		####################
@@ -88,7 +95,7 @@ function populate_pool
 		# file creation of sparse files.
 		####################
 		dd if=/dev/urandom \
-		    of=${pool}/B_${this_recordsize}/file_${filenum} \
+		    of=/${pool}/B_${this_recordsize}/file_${filenum} \
 		    bs=${this_recordsize} count=1 iflag=fullblock
 
 		((this_record_index++))
@@ -106,7 +113,7 @@ function check_histo_test_pool
 
 	set -A recordsizes
 	set -A recordcounts
-	typeset -i pool_size=0
+	typeset -i histo_pool_size=0
 	typeset -i recordsize
 	typeset -i min_recordsizebits=9 #512
 	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1
@@ -116,11 +123,11 @@ function check_histo_test_pool
 	typeset dumped
 	typeset stripped
 
-	let pool_size=$(get_pool_size ${pool}
+	let histo_pool_size=$(histo_get_pool_size ${pool})
 
-	for recordsize in gen_range(min_recordsizebits max_recordsizebits)
+	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
 	do
-		((recordsizes[recordsize]= 1ULL '<<' recordsize))
+		recordsizes[$recordsize]=$(echo "2^${recordsize}" | bc)
 		((sum_filesizes+=recordsizes[recordsize]))
 	done
 
@@ -133,7 +140,7 @@ function check_histo_test_pool
 	    sed -e '1,/^block[ 	][ 	]*psize[ 	][ 	]*lsize/d' \
 	    > ${stripped}
 
-	((max_files=pool_size % sum_filesizes))
+	((max_files=histo_pool_size % sum_filesizes))
 
 	this_record_index=min_recordsizebits
 
@@ -150,17 +157,16 @@ function check_histo_test_pool
 
 	errecho "Comparisons for ${pool}"
 	errecho "Blocksize\tCount\tpsize\tlsize\tasize"
-	for recordsize in gen_range(min_recordsizebits max_recordsizebit)
+	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebit})
 	do
-		psize=$(awk "/${recordsize}/{print\ \$2}" < ${stripped}
-		lsize=$(awk "/${recordsize}/{print\ \$5}" < ${stripped}
-		asize=$(awk "/${recordsize}/{print\ \$8}" < ${stripped}
+		psize=$(awk "/${recordsize}/{print \$2}" < ${stripped})
+		lsize=$(awk "/${recordsize}/{print \$5}" < ${stripped})
+		asize=$(awk "/${recordsize}/{print \$8}" < ${stripped})
 		errecho "${recordsize}\t${recordcounst[${recordsize}]}\t${psize}\t${lsize}\t${asize}"
 	done
 }
-USAGE="\n${0##*/} [-hd] [-b blksize] [-p <pool>] [-f <#>]\n
-\t\tfill a zfs tank.  The default fills the default tank by doing a\n
-\t\tcpio of the user's home directory.  The options specify creating\n
+USAGE="\n${0##*/} [-hd] [-b blksize] [-p <pool>] [-f <#>] <user>\n
+\t\tfill a zfs tank.  The options specify creating\n
 \t\ta set of files of varying blocksizes to fill the tank\n
 \t-h\t\tPrint this message\n
 \t-d\t\tTurn on diagnostics (set -x)\n
@@ -197,13 +203,14 @@ vdevspecified=0
 max_blocksize=128*__kibibytes
 ZFS_MAXBLOCKSHIFT=24
 re_number='^[0-9]+$'
-max_files=${ZFS_MAXBLOCKSHIFT}\*2
+
+((max_files=${ZFS_MAXBLOCKSHIFT} * 2))
 
 while getopts ${optionargs} name
 do
 	case ${name} in
 	h)
-		errecho "-e" ${USAGE}
+		echo "-e" ${USAGE}
 #		echo -en "${USAGE}"
 		exit 0
 		;;
@@ -242,7 +249,7 @@ do
 		;;
 	\?)
 		errecho "-e" "invalid option -${OPTARG}"
-		errecho "-e" ${USAGE}
+		echo "-e" ${USAGE}
 		exit -1
 		;;
 
@@ -270,81 +277,13 @@ slag5 | slag6 | auk134 | corona* )
 #		cd /g/g0
 #		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
 #	fi
-	targetpath=${pooldir}
-	existingsize=$(zfs get recordsize ${pool} | \
-		awk /${pool}/{print\ \$3})
-	numericsize=$(nice2num ${existingsize})
-	if [ -z "${numericsize}" ]
-	then
-		numericsize=128*${__kbibibyte}
-	fi
-	let gen_blocksize=9 
-	recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
-	for filenum in $(gen_range 0 ${max_files})
-	do
-		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT} || \
-			${recordsize} -ge ${numericsize} ]]
-		then
-			let gen_blocksize=9
-		fi
-		recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
-		if [ ! -d ${pooldir}/B_${recordsize} ]
-		then
-			zfs create ${pool}/B_${recordsize}
-			zfs set recordsize=${recordsize} \
-			    ${pool}/B_${recordsize}
-			chown ${luser} ${pooldir}/B_${recordsize}
-			chgrp ${luser} ${pooldir}/B_${recordsize}
-		fi
-		dd if=/dev/urandom \
-		    of=${pooldir}/B_${recordsize}/file_${filenum} \
-		    bs=${recordsize} count=1024 iflag=fullblock
-		((gen_blocksize++))
-		echo "Completed ${filenum} of ${max_files}"
-	done
+	$(populate_pool ${pool})
 	;;
 OptiPlex980|Inspiron3185)
-	targetdir=AAA_My_Jobs
-	targetpath=${pooldir}
-# 	if [ ! -d ${pooldir}/AAA_My_Jobs ]
-# 	then
-# 		cd /home/${luser}/Dropbox/
-# 		/usr/bin/time find AAA_My_Jobs -print | cpio -pdmv ${pooldir}
-# 	fi
-	existingsize=$(zfs get recordsize ${pool} | awk /${pool}/{print\ \$3})
-	numericsize=$(nice2num ${existingsize})
-	if [ -z "${numericsize}" ]
-	then
-		numericsize=128*${__kibibyte}
-	fi
-	gen_blocksize=9
-	recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
-	for filenum in $(gen_range 0 ${max_files})
-	do
-		if [[ ${gen_blocksize} -gt ${ZFS_MAXBLOCKSHIFT}  || \
-			${recordsize} -ge ${numericsize}  ]]
-		then
-			let gen_blocksize=9
-		fi
-		recordsize=$(echo "2 ^ ${gen_blocksize}"|bc)
-		if [ ! -d ${pooldir}/B_${recordsize} ]
-		then
-			zfs create ${pool}/B_${recordsize}
-			zfs set recordsize=${recordsize} \
-			    ${pool}/B_${recordsize}
-			chown ${luser} ${pooldir}/B_${recordsize}
-			chgrp ${luser} ${pooldir}/B_${recordsize}
-		fi
-		dd if=/dev/urandom \
-		    of=${pooldir}/B_${recordsize}/file_${filenum} \
-		    bs=${recordsize} count=512 iflag=fullblock
-		((gen_blocksize++))
-	done
+	$(populate_pool ${pool})
 	;;
 \?)
-	cd ~/Dropbox/
-	/usr/bin/time find AAA_My_Jobs -print | cpio -pdmv ${pooldir}
+	$(populate_pool ${pool})
 	;;
 esac
-
-
+# vim: set syntax=ksh, lines=55, columns=120,colorcolumn=78
