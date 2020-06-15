@@ -170,9 +170,10 @@ slag5)
 	if [ ${vdevsspecified} -eq 0 ]
 	then
 		slagdir="/dev/disk/by-vdev/"
-		echo "zpool create ${pool} ${slagdir}/$(head -1 ${host}list)"
-		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${host}list)
-		for loopdev in $(tail -n +2 ${host}list)
+		slagxlist="/tmp/${host}list.$$.txt"
+		echo "zpool create ${pool} ${slagdir}/$(head -1 ${slagxlist})"
+		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${slagxlist})
+		for loopdev in $(tail -n +2 ${slagxlist})
 		do
 			echo "zpool add ${pool} ${slagdir}/${loopdev}"
 			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
