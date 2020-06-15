@@ -63,7 +63,6 @@ USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] 
 \t\t\tNote that the files will be in /<vdev-prefix>-files\n
 \t\t\tif file vdevs are used.\n
 "
-		set -x
 
 ####################
 # The default tank name is tank.  The resulting ZFS directory will
@@ -156,7 +155,8 @@ else
 	chown ${luser} /root/.bashrc.${luser}.save
 fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
-case $(hostname) in
+host=$(hostname)
+case ${host} in
 slag5)
 	echo "We are on $(hostname)"
 	rm -rf /tmp/slag*.txt
@@ -170,9 +170,9 @@ slag5)
 	if [ ${vdevsspecified} -eq 0 ]
 	then
 		slagdir="/dev/disk/by-vdev/"
-		echo "zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})"
-		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${slag5list})
-		for loopdev in $(tail -n +2 ${slag5list})
+		echo "zpool create ${pool} ${slagdir}/$(head -1 ${host}list)"
+		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${host}list)
+		for loopdev in $(tail -n +2 ${host}list)
 		do
 			echo "zpool add ${pool} ${slagdir}/${loopdev}"
 			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
@@ -187,12 +187,32 @@ slag5)
 	;;
 slag6)
 	echo "We are on $(hostname)"
+	rm -rf /tmp/slag*.txt
+	slagdir="/dev/disk/by-vdev/"
+	slagssdprefix="U"
+	slagssdlist=/tmp/slagssdlist.$$.txt
+	slag5list=/tmp/slag5list.$$.txt
+	slag6list=/tmp/slag6list.$$.txt
+	slagtmplist=/tmp/slagtmplist.$$.txt
 	$(slaglists) 2>&1 > /dev/null
-	zpool create ${pool} ${slag6list}
-	zpool status ${pool}
-	zfs set recordsize=1m ${pool}
-	chown ${luser} ${pooldir}
-	chgrp ${luser} ${pooldir}
+	if [ ${vdevsspecified} -eq 0 ]
+	then
+		slagdir="/dev/disk/by-vdev/"
+		echo "zpool create ${pool} ${slagdir}/$(head -1 ${host}list)"
+		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${host}list)
+		for loopdev in $(tail -n +2 ${host}list)
+		do
+			echo "zpool add ${pool} ${slagdir}/${loopdev}"
+			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
+		done
+		zpool status ${pool}
+		zfs set recordsize=1m ${pool}
+		chown ${luser} ${pooldir}
+		chgrp ${luser} ${pooldir}
+	else
+		zpool create ${pool} 
+	fi
+
 	;;
 auk134)
 	echo "We are on $(hostname)"
@@ -237,8 +257,9 @@ OptiPlex980|Inspiron3185)
 		if [ ! -f ${ZPOOL}${i} ]
 		then
 			errecho "Building ${ZPOOL}${i}"
-			dd if=/dev/zero of=${ZPOOL}${i} bs=1G \
-			    count=8 &> /dev/null
+			truncate -s 8G ${ZPOOL}${i}
+#			dd if=/dev/zero of=${ZPOOL}${i} bs=1G \
+#			    count=8 &> /dev/null
 		fi
 		POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done
