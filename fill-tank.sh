@@ -46,37 +46,37 @@ function populate_pool
 	typeset pool=$1
 
 	set -A recordsizes
-	typeset -i recordsize
 	typeset -i min_recordsizebits=9 #512
 	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1 #16 MiB
-	typeset -i this_recordsize
-	typeset -i this_record_index
 	typeset -i sum_filesizes=0
 
 	my_pool_size=$(histo_get_pool_size ${pool})
 
-	echo "my_pool_size=$my_pool_size"
 	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
 	do
 		recordsizes[$recordsize]=$(echo "2 ^ ${recordsize}" | bc)
 		((sum_filesizes+=recordsizes[$recordsize]))
 	done
 
-	max_pool_record_size=$(zfs get -p recordsize ${pool})
+	max_pool_record_size=$(zfs get -p recordsize ${pool}|awk "/${pool}/{print \$3}")
 
 	((max_files=my_pool_size % sum_filesizes))
 	this_record_index=min_recordsizebits
 
 	for filenum in $(gen_range 0 ${max_files})
 	do
+		if [ $(expr ${filenum} % 10000)  -eq 0 ]
+		then
+			echo "${0##*/}: File number ${filenum} of ${max_files}"
+		fi
 		let this_recordsize=recordsizes[${this_record_index}]
-		if [[ this_record_index -gt max_recordsizebits || \
+		if [[ ${this_record_index} -gt ${max_recordsizebits} || \
 			${this_recordsize} -gt ${max_pool_record_size} ]]
 		then
 			let this_record_index=min_recordsizebits
 			let this_recordsize=recordsizes[${this_record_index}]
 		fi
-		if [ ! -d ${pool}/B_${this_recordsize} ]
+		if [ ! -d /${pool}/B_${this_recordsize} ]
 		then
 
 			echo "zfs create ${pool}/B_${this_recordsize}"
@@ -96,7 +96,8 @@ function populate_pool
 		####################
 		dd if=/dev/urandom \
 		    of=/${pool}/B_${this_recordsize}/file_${filenum} \
-		    bs=${this_recordsize} count=1 iflag=fullblock
+		    bs=${this_recordsize} count=1 iflag=fullblock 2>&1 | \
+		    egrep -v -e "records in" -e "records out" -e "bytes.*copied"
 
 		((this_record_index++))
 	done
@@ -210,7 +211,7 @@ while getopts ${optionargs} name
 do
 	case ${name} in
 	h)
-		echo "-e" ${USAGE}
+		echo -en ${USAGE}
 #		echo -en "${USAGE}"
 		exit 0
 		;;
@@ -249,7 +250,7 @@ do
 		;;
 	\?)
 		errecho "-e" "invalid option -${OPTARG}"
-		echo "-e" ${USAGE}
+		echo -en ${USAGE}
 		exit -1
 		;;
 
@@ -267,7 +268,7 @@ then
 else
 	echo "Missing username"
 	echo "${0##*/} <user>"
-	echo "${USAGE}"
+	echo -en "${USAGE}"
 	exit -1
 fi
 case $(hostname) in
@@ -277,13 +278,13 @@ slag5 | slag6 | auk134 | corona* )
 #		cd /g/g0
 #		/usr/bin/time find ${luser} -print | cpio -pdm ${pooldir}
 #	fi
-	$(populate_pool ${pool})
+	populate_pool ${pool}
 	;;
 OptiPlex980|Inspiron3185)
-	$(populate_pool ${pool})
+	populate_pool ${pool}
 	;;
 \?)
-	$(populate_pool ${pool})
+	populate_pool ${pool}
 	;;
 esac
 # vim: set syntax=ksh, lines=55, columns=120,colorcolumn=78
