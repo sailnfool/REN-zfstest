@@ -52,54 +52,78 @@ function populate_pool
 
 	my_pool_size=$(histo_get_pool_size ${pool})
 
-	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
-	do
-		recordsizes[$recordsize]=$(echo "2 ^ ${recordsize}" | bc)
-		((sum_filesizes+=recordsizes[$recordsize]))
-	done
-
 	max_pool_record_size=$(zfs get -p recordsize ${pool}|awk "/${pool}/{print \$3}")
+
+	for recordbits in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
+	do
+		this_recordsize=$(echo "2^${recordbits}" | bc)
+		recordsizes[$recordbits]=${this_recordsize}
+		echo "this_recordsize=${this_recordsize}"
+		echo "recordbits=${recordbits}"
+		echo "recordsizes[${recordbits}]=${recordsizes[$recordbits]}"
+		((sum_filesizes+=recordsizes[$recordbits]))
+		if [ ${recordsizes[$recordbits]} -le ${max_pool_record_size} ]
+		then
+			if [ ! -d /${pool}/B_${recordsizes[$recordbits]} ]
+			then
+				echo "zfs create ${pool}/B_${this_recordsize}"
+				zfs create ${pool}/B_${this_recordsize}
+				echo "zfs set recordsize=${this_recordsize} " \
+				    "${pool}/B_${this_recordsize}"
+				zfs set recordsize=${this_recordsize} \
+				    ${pool}/B_${this_recordsize}
+			fi
+		fi
+
+	done
 
 	((max_files=my_pool_size % sum_filesizes))
 	this_record_index=min_recordsizebits
 
-	for filenum in $(gen_range 0 ${max_files})
+	filenum=0
+	for pass in 10 20 30 40
 	do
-		if [ $(expr ${filenum} % 10000)  -eq 0 ]
-		then
-			echo "${0##*/}: File number ${filenum} of ${max_files}"
-		fi
-		let this_recordsize=recordsizes[${this_record_index}]
-		if [[ ${this_record_index} -gt ${max_recordsizebits} || \
-			${this_recordsize} -gt ${max_pool_record_size} ]]
-		then
-			let this_record_index=min_recordsizebits
+		thiscount=$(expr ${max_files} / ${pass})
+		echo "${0##*/} Pass = ${pass}, filenum=${filenum}"
+		echo "${0##*/} thiscount=${thiscount}, max_files=${max_files}"
+		while [ ${filenum} -le ${max_files} ]
+		do
+			filecount=$(expr ${thiscount} / 12)
+			if [ $(expr ${filenum} % 10000)  -eq 0 ]
+			then
+				echo "${0##*/}: File number ${filenum} of ${max_files}"
+			fi
 			let this_recordsize=recordsizes[${this_record_index}]
-		fi
-		if [ ! -d /${pool}/B_${this_recordsize} ]
-		then
-
-			echo "zfs create ${pool}/B_${this_recordsize}"
-			zfs create ${pool}/B_${this_recordsize}
-			echo "zfs set recordsize=${this_recordsize} " \
-			    "${pool}/B_${this_recordsize}"
-			zfs set recordsize=${this_recordsize} \
-			    ${pool}/B_${this_recordsize}
-		fi
-
-		####################
-		# Create the files in the devices and datasets of the
-		# right size.  The files are filled with random data
-		# to defeat the compression
-		# Alternatively we could use truncate for a faster
-		# file creation of sparse files.
-		####################
-		dd if=/dev/urandom \
-		    of=/${pool}/B_${this_recordsize}/file_${filenum} \
-		    bs=${this_recordsize} count=1 iflag=fullblock 2>&1 | \
-		    egrep -v -e "records in" -e "records out" -e "bytes.*copied"
-
-		((this_record_index++))
+			if [[ ${this_record_index} -gt ${max_recordsizebits} || \
+				${this_recordsize} -gt ${max_pool_record_size} ]]
+			then
+				let this_record_index=min_recordsizebits
+				let this_recordsize=recordsizes[${this_record_index}]
+				break
+			fi
+	
+			####################
+			# Create the files in the devices and datasets of the
+			# right size.  The files are filled with random data
+			# to defeat the compression
+			# Alternatively we could use truncate for a faster
+			# file creation of sparse files.
+			####################
+			date
+			echo "dd if=/dev/urandom " \
+			    "of=/${pool}/B_${this_recordsize}/file_${filenum} " \
+			    "bs=${this_recordsize} count=${filecount} " \
+			    "iflag=fullblock"
+			dd if=/dev/urandom \
+			    of=/${pool}/B_${this_recordsize}/file_${filenum} \
+			    bs=${this_recordsize} count=${filecount} \
+			    iflag=fullblock 2>&1 | \
+			    egrep -v -e "records in" -e "records out"
+#				-e "bytes.*copied"
+			filenum=$(expr ${filenum} + ${filecount})
+	
+			((this_record_index++))
+		done
 	done
 }
 
