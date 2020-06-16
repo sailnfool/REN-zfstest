@@ -1,6 +1,5 @@
 #!/bin/bash
 source func.errecho
-source func.genrange
 #######################################################################
 # Author: Robert E. Novak
 # email: novak5@llnl.gov, sailnfool@gmail.com
@@ -226,7 +225,7 @@ auk134)
 	####################
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
-	for i in $(gen_range 0 ${num_vdevs})
+	for i in $(seq 0 ${num_vdevs})
 	do
 	  if [ ! -f ${vdevsfiledir}/file-${i} ]
 	  then
@@ -253,7 +252,7 @@ OptiPlex980|Inspiron3185)
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
 	ZPOOL=${vdevsfiledir}/file
-	for i in $(gen_range 0 ${num_vdevs})
+	for i in $(seq 0 ${num_vdevs})
 	do
 		if [ ! -f ${ZPOOL}${i} ]
 		then

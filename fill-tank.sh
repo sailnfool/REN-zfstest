@@ -1,7 +1,6 @@
 #!/bin/ksh
 source func.kerrecho
 source func.kinsufficient
-source func.kgenrange
 source func.kkbytes
 source func.knice2num
 #######################################################################
@@ -31,6 +30,9 @@ function histo_get_pool_size
 	then
 		errecho "Could not retrieve the size of ${pool}"
 		exit -1
+	elif [[ ${real_pool_size} =~ ${re_number} ]]
+		errecho "pool size is not numeric: ${real_pool_size}"
+		exit -1
 	fi
 	echo ${real_pool_size}
 }
@@ -54,13 +56,10 @@ function populate_pool
 
 	max_pool_record_size=$(zfs get -p recordsize ${pool}|awk "/${pool}/{print \$3}")
 
-	for recordbits in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
+	for recordbits in $(seq ${min_recordsizebits} ${max_recordsizebits})
 	do
 		this_recordsize=$(echo "2^${recordbits}" | bc)
 		recordsizes[$recordbits]=${this_recordsize}
-		echo "this_recordsize=${this_recordsize}"
-		echo "recordbits=${recordbits}"
-		echo "recordsizes[${recordbits}]=${recordsizes[$recordbits]}"
 		((sum_filesizes+=recordsizes[$recordbits]))
 		if [ ${recordsizes[$recordbits]} -le ${max_pool_record_size} ]
 		then
@@ -93,12 +92,12 @@ function populate_pool
 			then
 				echo "${0##*/}: File number ${filenum} of ${max_files}"
 			fi
-			let this_recordsize=recordsizes[${this_record_index}]
+			let this_recordsize=${recordsizes[${this_record_index}]}
 			if [[ ${this_record_index} -gt ${max_recordsizebits} || \
 				${this_recordsize} -gt ${max_pool_record_size} ]]
 			then
-				let this_record_index=min_recordsizebits
-				let this_recordsize=recordsizes[${this_record_index}]
+				let this_record_index=${min_recordsizebits}
+				let this_recordsize=${recordsizes[${this_record_index}]}
 				break
 			fi
 	
@@ -150,7 +149,7 @@ function check_histo_test_pool
 
 	let histo_pool_size=$(histo_get_pool_size ${pool})
 
-	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebits})
+	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebits})
 	do
 		recordsizes[$recordsize]=$(echo "2^${recordsize}" | bc)
 		((sum_filesizes+=recordsizes[recordsize]))
@@ -169,7 +168,7 @@ function check_histo_test_pool
 
 	this_record_index=min_recordsizebits
 
-	for filenum in $(gen_range 0 ${max_files})
+	for filenum in $(seq 0 ${max_files})
 	do
 		if [ this_record_index -gt max_recordsizebits ]
 		then
@@ -182,7 +181,7 @@ function check_histo_test_pool
 
 	errecho "Comparisons for ${pool}"
 	errecho "Blocksize\tCount\tpsize\tlsize\tasize"
-	for recordsize in $(gen_range ${min_recordsizebits} ${max_recordsizebit})
+	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebit})
 	do
 		psize=$(awk "/${recordsize}/{print \$2}" < ${stripped})
 		lsize=$(awk "/${recordsize}/{print \$5}" < ${stripped})
