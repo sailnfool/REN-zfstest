@@ -135,9 +135,9 @@ else
 	exit -1
 fi
 shift
-if [ $EUID != 0 ]
+if [ $(id -u) != 0 ]
 then
-	echo "Not root"
+	echo "You must be root.  You are $(id -ur)"
 	exit -1
 fi
 while [ $# -gt 0 ]

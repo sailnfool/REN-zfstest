@@ -31,6 +31,7 @@ function histo_get_pool_size
 		errecho "Could not retrieve the size of ${pool}"
 		exit -1
 	elif [[ ${real_pool_size} =~ ${re_number} ]]
+	then
 		errecho "pool size is not numeric: ${real_pool_size}"
 		exit -1
 	fi
@@ -282,7 +283,7 @@ done
 shift "$(($OPTIND - 1 ))"
 if [ $(id -u) != 0 ]
 then
-	echo "Not root"
+	echo "You must be root.  You are $(id -ur)"
 	exit -1
 fi
 if [ $# -gt 0 ]

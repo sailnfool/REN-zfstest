@@ -16,6 +16,7 @@
 source func.insufficient
 source func.errecho
 source func.debug
+source zfunc.zfsparent
 
 USAGE="\r\n${0##*/} [-hn]\r\n
 \t\tTest an in-tree copy of ZFS. The default is to retrieve a copy\r\n
@@ -48,22 +49,9 @@ user_space=""
 OS_RELEASE=$(lsb_release -i | cut -f 2)
 OS_REVISION=$(lsb_release -r | cut -f 2)
 
-####################
-# The assumption here is that we are cloning into a github subdirectory
-# of the user's HOME directory, since that will hopefully be 
-# intuitively obvious.
-# However, 
-####################
-host=$(hostname)
-case ${host} in
-slag*|jet*)
-	ZFSPARENT="/tftpboot/global/novak5/github"
-	;;
-*)
-	ZFSPARENT="$HOME/github"
-	;;
-esac
+ZFSPARENT=$(zfsparent)
 mkdir -p ${ZFSPARENT}
+LAST_BRANCH=${ZFSPARENT}/.zfs_last_branch
 
 errecho "Working from host $host"
 errecho "Working with OS Release ${OS_RELEASE}"
@@ -137,18 +125,18 @@ then
 	####################
 	git checkout ${branch_name[$choice]}
 	new_branch=${branch_name[$choice]}
-	if [ -f $HOME/.zfs_last_branch ]
+	if [ -f ${LAST_BRANCH} ]
 	then
-		old_branch=$(cat $HOME/.zfs_last_branch)
+		old_branch=$(cat ${LAST_BRANCH})
 	else
-		echo "0" > $HOME/.zfs_last_branch
+		echo "0" > ${LAST_BRANCH}
 	fi
 	if [ "${old_branch}" = "${new_branch}" ]
 	then
 		reconfigure=0
 	else
 		reconfigure=1
-		echo ${new_branch} > ~/.zfs_last_branch
+		echo ${new_branch} > ${LAST_BRANCH}
 	fi
 fi
 

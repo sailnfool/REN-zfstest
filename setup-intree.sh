@@ -13,6 +13,7 @@
 #######################################################################
 source func.errecho
 source func.insufficient
+source zfunc.zfsparent
 
 USAGE="\r\n${0##*/} [-hus] [-r <repo>]\r\n
 \t\tTest an in-tree copy of ZFS.  	The default is to retrieve a copy\r\n
@@ -41,7 +42,6 @@ REPO_STANDARD="https://github.com/openzfs/zfs"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
 user_mode_only=0
-LAST_BRANCH=$HOME/.zfs_last_branch
 
 ####################
 # Find out what operating system we are running
@@ -49,22 +49,9 @@ LAST_BRANCH=$HOME/.zfs_last_branch
 OS_RELEASE=$(lsb_release -i | cut -f 2)
 OS_REVISION=$(lsb_release -r | cut -f 2)
 
-####################
-# The assumption here is that we are cloning into a github subdirectory
-# of the user's HOME directory, since that will hopefully be 
-# intuitively obvious.
-# However, 
-####################
-host=$(hostname)
-case ${host} in
-slagi|jet*)
-	ZFSPARENT="/tftpboot/global/novak5/github"
-	;;
-*)
-	ZFSPARENT="$HOME/github"
-	;;
-esac
+ZFSPARENT=$(zfsparent)
 mkdir -p ${ZFSPARENT}
+LAST_BRANCH=${ZFSPARENT}/.zfs_last_branch
 
 errecho "Working from host $host"
 errecho "Working with OS Release ${OS_RELEASE}"
@@ -227,7 +214,10 @@ fi
 if [ "${use_existing_clone}" -eq 0 ]
 then
 	/usr/bin/time git clone ${REPO}
-	rm -rf ${LAST_BRANCH}
+	if [ -f ${LAST_BRANCH} ]
+	then
+		rm -rf ${LAST_BRANCH}
+	fi
 fi
 
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"
