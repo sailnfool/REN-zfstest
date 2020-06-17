@@ -56,7 +56,7 @@ function populate_pool
 
 	max_pool_record_size=$(zfs get -p recordsize ${pool}|awk "/${pool}/{print \$3}")
 
-	for recordbits in $(seq ${min_recordsizebits} ${max_recordsizebits})
+	for recordbits in $(seq ${min_recordsizebits} ${max_recordsizebits}-1)
 	do
 		this_recordsize=$(echo "2^${recordbits}" | bc)
 		recordsizes[$recordbits]=${this_recordsize}
@@ -149,7 +149,7 @@ function check_histo_test_pool
 
 	let histo_pool_size=$(histo_get_pool_size ${pool})
 
-	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebits})
+	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebits}-1)
 	do
 		recordsizes[$recordsize]=$(echo "2^${recordsize}" | bc)
 		((sum_filesizes+=recordsizes[recordsize]))
@@ -168,7 +168,7 @@ function check_histo_test_pool
 
 	this_record_index=min_recordsizebits
 
-	for filenum in $(seq 0 ${max_files})
+	for filenum in $(seq 0 ${max_files}-1)
 	do
 		if [ this_record_index -gt max_recordsizebits ]
 		then
@@ -181,7 +181,7 @@ function check_histo_test_pool
 
 	errecho "Comparisons for ${pool}"
 	errecho "Blocksize\tCount\tpsize\tlsize\tasize"
-	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebit})
+	for recordsize in $(seq ${min_recordsizebits} ${max_recordsizebit}-1)
 	do
 		psize=$(awk "/${recordsize}/{print \$2}" < ${stripped})
 		lsize=$(awk "/${recordsize}/{print \$5}" < ${stripped})
