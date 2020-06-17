@@ -225,7 +225,8 @@ auk134)
 	####################
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
-	for i in $(seq 0 ${num_vdevs})
+	max_vdevs=$(expr ${num_vdevs} - 1)
+	for i in $(seq 0 ${max_vdevs})
 	do
 	  if [ ! -f ${vdevsfiledir}/file-${i} ]
 	  then
@@ -252,7 +253,8 @@ OptiPlex980|Inspiron3185)
 	# create 8 files of 8GB each for a total pool size of 64GB
 	####################
 	ZPOOL=${vdevsfiledir}/file
-	for i in $(seq 0 ${num_vdevs})
+	max_vdevs=$(expr ${num_vdevs} - 1)
+	for i in $(seq 0 ${max_vdevs})
 	do
 		if [ ! -f ${ZPOOL}${i} ]
 		then

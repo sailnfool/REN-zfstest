@@ -23,6 +23,7 @@ function histo_get_pool_size
 	fi
 	typeset pool=$1
 	real_pool_size=0
+	re_number='^[0-9]+$'
 
 	let real_pool_size=$(zpool list -p|awk "/${pool}/{print \$2}")
 
@@ -30,7 +31,7 @@ function histo_get_pool_size
 	then
 		errecho "Could not retrieve the size of ${pool}"
 		exit -1
-	elif [[ ${real_pool_size} =~ ${re_number} ]]
+	elif [[ ! ${real_pool_size} =~ ${re_number} ]]
 	then
 		errecho "pool size is not numeric: ${real_pool_size}"
 		exit -1
@@ -50,7 +51,7 @@ function populate_pool
 
 	set -A recordsizes
 	typeset -i min_recordsizebits=9 #512
-	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1 #16 MiB
+	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT #16 MiB
 	typeset -i sum_filesizes=0
 
 	my_pool_size=$(histo_get_pool_size ${pool})
@@ -141,7 +142,7 @@ function check_histo_test_pool
 	typeset -i histo_pool_size=0
 	typeset -i recordsize
 	typeset -i min_recordsizebits=9 #512
-	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT+1
+	typeset -i max_recordsizebits=SPA_MAXBLOCKSHIFT
 	typeset -i this_recordsize
 	typeset -i this_record_index
 	typeset -i sum_filesizes=0
@@ -169,7 +170,8 @@ function check_histo_test_pool
 
 	this_record_index=min_recordsizebits
 
-	for filenum in $(seq 0 ${max_files})
+	count_files=$(expr ${max_files} - 1)
+	for filenum in $(seq 0 ${count_files})
 	do
 		if [ this_record_index -gt max_recordsizebits ]
 		then
