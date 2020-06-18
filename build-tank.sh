@@ -228,11 +228,12 @@ auk134)
 	max_vdevs=$(expr ${num_vdevs} - 1)
 	for i in $(seq 0 ${max_vdevs})
 	do
-	  if [ ! -f ${vdevsfiledir}/file-${i} ]
-	  then
-	    dd if=/dev/zero of=${vdevsfiledir}/file-${i} bs=1G count=8 &> /dev/null
-	  fi
-	  POOLNAMES="${POOLNAMES} ${vdevsfiledir}/file-${i}"
+		if [ ! -f ${vdevsfiledir}/file-${i} ]
+		then
+			truncate -s ${bs} ${ZPOOL}${i}
+#			dd if=/dev/zero of=${vdevsfiledir}/file-${i} bs=${bs} count=1 &> /dev/null
+		fi
+		POOLNAMES="${POOLNAMES} ${vdevsfiledir}/file-${i}"
 	done
 	zpool create ${pool} ${POOLNAMES}
 	zpool status ${pool}
@@ -259,9 +260,9 @@ OptiPlex980|Inspiron3185)
 		if [ ! -f ${ZPOOL}${i} ]
 		then
 			errecho "Building ${ZPOOL}${i}"
-			truncate -s 8G ${ZPOOL}${i}
-#			dd if=/dev/zero of=${ZPOOL}${i} bs=1G \
-#			    count=8 &> /dev/null
+			truncate -s ${bs} ${ZPOOL}${i}
+#			dd if=/dev/zero of=${ZPOOL}${i} bs=${bs} \
+#			    count=1&> /dev/null
 		fi
 		POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done

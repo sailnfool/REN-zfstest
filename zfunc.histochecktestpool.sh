@@ -21,14 +21,20 @@ function histo_check_test_pool
 	typeset dumped
 	typeset stripped
 
-	let pool_size=$(histo_get_pool_size ${pool})
-	mkdir -p ${TEST_BASE_DIR}
+	let my_pool_size=$(histo_get_pool_size ${pool})
+	if [[ ! ${my_pool_size} =~ ${re_number} ]]
+	then
+		log_note "my_pool_size is not numeric ${my_pool_size}"
+		log_fail
+	fi
+	let max_pool_record_size=$(zfs get -p recordsize ${pool}| awk "/${pool}/{print \$3}")
+	if [[ ! ${max_pool_record_size} =~ ${re_number} ]]
+	then
+		log_note "max_pool_record_size is not numeric ${max_pool_record_size}"
+		log_fail
+	fi
 
-	for rb in $(seq ${min_rsbits} ${max_rsbits})
-	do
-		recordsizes[${rb}]=$(echo "2^${rb}"|bc)
-		((sum_filesizes+=recordsizes[${rb}]))
-	done
+	mkdir -p ${TEST_BASE_DIR}
 
 	dumped="${TEST_BASE_DIR}/${pool}_dump.txt"
 	stripped="${TEST_BASE_DIR}/${pool}_stripped.txt"
@@ -39,66 +45,22 @@ function histo_check_test_pool
 	    -e '/^size[ 	]*Count/d' -e '/^$/,$d' \
 	    > ${stripped}
 
-	((max_files=pool_size % sum_filesizes))
-
-	this_ri=min_rsbits
-
-	filenum=0
+	sum_filesizes=$(echo "2^21"|bc)
 
 	###################
-	# generate 10% + 20% + 30% + 40% = 100% of the files
+	# generate 10% + 20% + 30% + 31% = 91% of the filespace
 	###################
-	for pass in 10 20 30 40
+	for pass in 10 20 30 31
 	do
-		((thiscount=(max_files * pass)/100))
-		echo "${0##*/} Pass = ${pass}, filenum=${filenum}"
-		echo "${0##*/} thiscount=${thiscount}, max_files=${max_files}"
+		((thiscount=(((my_pool_size*pass)/100)/sum_filesizes)))
 
-		if [ ${thiscount} -lt 12 ]
-		then
-			echo "found zero thiscount"
-			thiscount=12
-		fi
-
-		####################
-		# This code mirrors the code in histo_populate_test_pool
-		# but does not perform the dd copies to create the
-		# files with block sizes
-		####################
-		while [ ${filenum} -le ${max_files} ]
+		for rb in $(seq ${min_rsbits} ${max_rsbits})
 		do
-			if [ $(expr ${filenum} % 10000)  -eq 0 ]
+			blksize=$(echo "2^$rb"|bc)
+			if [ $blksize -le $max_pool_record_size ]
 			then
-				echo "${0##*/}: File number " \
-				   "${filenum} of ${max_files}"
+				((recordcounts[$blksize]+=thiscount))
 			fi
-
-			####################
-			# 12 = number of steps (inclusive) from
-			# 2^9 = 512 to
-			# 2^20 = 1 MiB
-			####################
-			if [ ${thiscount} -lt 12 ]
-			then
-				thiscount=12
-			fi
-
-			filecount=$(expr ${thiscount} / 12)
-			if [ ${filecount} -eq 0 ]
-			then
-				let filecount=1
-			fi
-			let this_rs=${recordsizes[${this_ri}]}
-			if [[ ${this_ri} -gt ${max_rsbits} || \
-				${this_rs} -gt ${max_pool_record_size} ]]
-			then
-				let this_ri=min_rsbits
-				let this_rs=${recordsizes[${this_ri}]}
-				break
-			fi
-			((recordcounts[${this_rs}]+=filecount))
-			((filenum+=filecount))
-			((this_ri++))
 		done
 	done
 
@@ -111,27 +73,34 @@ function histo_check_test_pool
 	# 4096 blocksize count for asize.   For verification we stick
 	# to just lsize counts.
 	#
-	# The max_variance is hard-coded here at 5%.  testing so far
-	# has shown this to be in the range of 2%-3% so we leave a
+	# The max_variance is hard-coded here at 10%.  testing so far
+	# has shown this to be in the range of 2%-8% so we leave a
 	# generous allowance... This might need changes in the future
 	###################
-	let max_variance=5
+	let max_variance=10
 	log_note "Comparisons for ${pool}"
 	log_note "Blocksize\tCount\tpsize\tlsize\tasize"
 	while read -r blksize pc pl pm lc ll lm ac al am
 	do
+		if [ $blksize -gt $max_pool_record_size ]
+		then
+			continue
+		fi
 		log_note \
-		    "$blksize\t${recordcounts[$blksize]}\t$pc\t$lc\t$ac"
+		    "$blksize\t${recordcounts[${blksize}]}\t$pc\t$lc\t$ac"
 		rc=${recordcounts[${blksize}]}
-		diff=$(echo \
-		    "define abs(i){if((i<0)return(-i);return(i)}(abs($rc-$lc)/$rc)*100" \
-		    | bc -l)
-
+		((rclc=rc-lc))
+		((rclc=rclc<0?-1*rclc:rclc))
+		diff=$(echo "($rclc/$rc)*100" | bc -l)
 		####################
 		# strip the decimal portion
 		####################
 		dp=${diff%%.*}
-		if [ $dp -lt ${max_variance} ]
+		if [ -z "$dp" ]
+		then
+			dp=0
+		fi
+		if [ $dp -gt ${max_variance} ]
 		then
 			log_fail "Variance exceeded ${max_variance} -- $dp"
 		fi

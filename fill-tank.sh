@@ -45,7 +45,7 @@ USAGE="\n${0##*/} [-hd] [-b blksize] [-p <pool>] [-f <#>] <user>\n
 # The default location if there are vdevs created "by file" they
 # will be in /zpool/files/file-xx where xx varies from 0 -> -f #
 ####################
-optionargs="hb:df:op:s:t:"
+optionargs="hb:df:op:s:t"
 NUMARGS=0
 num_vdevs=8
 debug=0
