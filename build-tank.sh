@@ -70,7 +70,7 @@ USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] 
 # The default location if there are vdevs created by file will be
 # in /zpool/files/file-xx where xx varies from 0 -> -f #
 ####################
-optionargs="hb:dp:vx:f:"
+optionargs="hb:dmp:vx:f:"
 NUMARGS=1
 num_vdevs=8
 debug=0
@@ -88,6 +88,7 @@ vdevsfiledir="${vdevsdir}/files"
 vdevlist=""
 poolspecified=0
 vdevsspecified=0
+mirrored=0
 
 
 while getopts ${optionargs} name
@@ -107,6 +108,9 @@ do
 		;;
 	f)
 		num_vdevs="${OPTARG}"
+		;;
+	m)
+		mirrored=1
 		;;
 	p)
 		poolspecified=1
@@ -266,6 +270,26 @@ OptiPlex980|Inspiron3185)
 		fi
 		POOLNAMES="${POOLNAMES} ${ZPOOL}${i}"
 	done
+	if [ ${mirrored} -eq 1 ]
+	then
+		if [ $(expr ${num_vdevs} % 2) -eq 0 ]
+		then
+			$(echo ${POOLNAMES} > /tmp/pools.$$.whole)
+			split -n l/2 /tmp/pools.$$.whole /tmp/pools.$$.half
+			mirror_num=1
+			for i in /tmp/pools.$$.half*
+			do
+				MIRROR_${mirror_num}=$i
+				((mirror_num++))
+			done
+			POOLNAMES=${MIRROR_1} mirror ${MIRROR_2}
+			rm -rf /tmp/pools.$$.*
+		else
+			errecho "Mirror requested, odd number of vdevs"
+			exit -1
+		fi
+	fi
+
 	errecho "Creating pool=${pool} with ${POOLNAMES}"
 	zpool create ${pool} ${POOLNAMES}
 	zpool status ${pool}

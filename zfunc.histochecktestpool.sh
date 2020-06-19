@@ -4,14 +4,13 @@ function histo_check_test_pool
 {
 	if [ $# -ne 1 ]
 	then
-		log_fail \
-		"check_histo_test_pool insufficient parameters"
+		log_note "histo_check_test_pool: insufficient parameters"
+		log_fail "hctp: 1 requested $# received"
 	fi	
 	typeset pool=$1
 
 	set -A recordsizes
 	set -A recordcounts
-	typeset -i pool_size=0
 	typeset -i rb
 	typeset -i min_rsbits=9 #512
 	typeset -i max_rsbits=SPA_MAXBLOCKSHIFT+1
@@ -21,17 +20,16 @@ function histo_check_test_pool
 	typeset dumped
 	typeset stripped
 
-	let my_pool_size=$(histo_get_pool_size ${pool})
-	if [[ ! ${my_pool_size} =~ ${re_number} ]]
+	let histo_check_pool_size=$(histo_get_pool_size ${pool})
+	if [[ ! ${histo_check_pool_size} =~ ${re_number} ]]
 	then
-		log_note "my_pool_size is not numeric ${my_pool_size}"
+		log_note "histo_check_pool_size is not numeric ${histo_check_pool_size}"
 		log_fail
 	fi
 	let max_pool_record_size=$(zfs get -p recordsize ${pool}| awk "/${pool}/{print \$3}")
 	if [[ ! ${max_pool_record_size} =~ ${re_number} ]]
 	then
-		log_note "max_pool_record_size is not numeric ${max_pool_record_size}"
-		log_fail
+		log_fail "hctp: max_pool_record_size is not numeric ${max_pool_record_size}"
 	fi
 
 	mkdir -p ${TEST_BASE_DIR}
@@ -49,10 +47,11 @@ function histo_check_test_pool
 
 	###################
 	# generate 10% + 20% + 30% + 31% = 91% of the filespace
+	# attempting to use 100% will lead to no space left on device
 	###################
 	for pass in 10 20 30 31
 	do
-		((thiscount=(((my_pool_size*pass)/100)/sum_filesizes)))
+		((thiscount=(((histo_check_pool_size*pass)/100)/sum_filesizes)))
 
 		for rb in $(seq ${min_rsbits} ${max_rsbits})
 		do
@@ -78,8 +77,11 @@ function histo_check_test_pool
 	# generous allowance... This might need changes in the future
 	###################
 	let max_variance=10
+	let fail_value=0
+	let error_count=0
 	log_note "Comparisons for ${pool}"
-	log_note "Blocksize\tCount\tpsize\tlsize\tasize"
+	log_note "Bsize is the blocksize, Count is predicted block count"
+	log_note "Bsize\tCount\tpsize\tlsize\tasize"
 	while read -r blksize pc pl pm lc ll lm ac al am
 	do
 		if [ $blksize -gt $max_pool_record_size ]
@@ -88,22 +90,40 @@ function histo_check_test_pool
 		fi
 		log_note \
 		    "$blksize\t${recordcounts[${blksize}]}\t$pc\t$lc\t$ac"
+
+		###################
+		# get the computer record count and compute the
+		# difference percentage in integer arithmetic
+		###################
 		rc=${recordcounts[${blksize}]}
-		((rclc=rc-lc))
-		((rclc=rclc<0?-1*rclc:rclc))
-		diff=$(echo "($rclc/$rc)*100" | bc -l)
-		####################
-		# strip the decimal portion
-		####################
-		dp=${diff%%.*}
-		if [ -z "$dp" ]
-		then
-			dp=0
-		fi
+		((rclc=(rc-lc)<0?lc-rc:rc-lc)) # absolute value
+		((dp=(rclc*100)/rc))
+
+		###################
+		# Check against the allowed variance
+		###################
 		if [ $dp -gt ${max_variance} ]
 		then
-			log_fail "Variance exceeded ${max_variance} -- $dp"
+			log_note \
+			"\thctp: Expected variance < ${max_variance}% observed ${dp}%"
+			if [ ${dp} -gt ${fail_value} ]
+			then
+				fail_value=${dp}
+				((error_count++))
+			fi
 		fi
 	done < ${stripped}
+	if [ ${fail_value} -gt 0 ]
+	then
+		if [ ${error_count} -eq 1 ]
+		then
+			log_note "hctp: There was ${error_count} error"
+		else
+			log_note "hctp:There were a total of ${error_count} errors"
+		fi
+		log_note \
+		"hctp: Max variance of ${max_variance}% exceeded, saw ${fail_value}%"
+		log_fail
+	fi
 	rm -rf ${TEST_BASE_DIR}
 }

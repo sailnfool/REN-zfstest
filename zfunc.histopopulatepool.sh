@@ -5,7 +5,8 @@ function histo_populate_pool
 {
 	if [ $# -ne 1 ]
 	then
-		$(insufficient 1)
+		log_note "histo_populate_test_pool: insufficient parameters"
+		log_fail "hptp: 1 requested $# received"
 	fi
 	typeset pool=$1
 
@@ -15,36 +16,34 @@ function histo_populate_pool
 	typeset -i sum_filesizes=0
 	re_number='^[0-9]+$'
 
-	let my_pool_size=$(histo_get_pool_size ${pool})
-	if [[ ! ${my_pool_size} =~ ${re_number} ]]
+	let histo_pool_size=$(histo_get_pool_size ${pool})
+	if [[ ! ${histo_pool_size} =~ ${re_number} ]]
 	then
-		log_note "my_pool_size is not numeric ${my_pool_size}"
-		log_fail
+		log_fail "histo_pool_size is not numeric ${pool_size}"
 	fi
 	let max_pool_record_size=$(zfs get -p recordsize ${pool}| awk "/${pool}/{print \$3}")
 	if [[ ! ${max_pool_record_size} =~ ${re_number} ]]
 	then
-		log_note "max_pool_record_size is not numeric ${max_pool_record_size}"
-		log_fail
+		log_fail "hptp: max_pool_record_size is not numeric ${max_pool_record_size}"
 	fi
 
 	sum_filesizes=$(echo "2^21"|bc)
 	((min_pool_size=12*sum_filesizes))
-	if [ ${my_pool_size} -lt ${min_pool_size} ]
+	if [ ${histo_pool_size} -lt ${min_pool_size} ]
 	then
-		log_note "Your pool size ${my_pool_size}"
-		log_note "is less than minimum ${min_pool_size}"
-		log_fail
+		log_note "hptp: Your pool size ${histo_pool_size}"
+		log_fail "hptp: is less than minimum ${min_pool_size}"
 	fi
 	this_ri=min_rsbits
 	file_num=0
 	total_count=0
 	###################
-	# generate 10% + 20% + 30% + 40% = 100% of the files
+	# generate 10% + 20% + 30% + 40% = 100% of the filespace
+	# attempting to use 100% will lead to no space left on device
 	###################
 	for pass in 10 20 30 31
 	do
-		((thiscount=(((my_pool_size*pass)/100)/sum_filesizes)))
+		((thiscount=(((histo_pool_size*pass)/100)/sum_filesizes)))
 
 		((total_count+=thiscount))
 		for rb in $(seq ${min_rsbits} ${max_rsbits})
@@ -76,6 +75,8 @@ function histo_populate_pool
 			    iflag=fullblock 2>&1 | \
 			    egrep -v -e "records in" -e "records out" \
 				-e "bytes.*copied"
+#			    egrep -v -e "records in" -e "records out" 
+#				-e "bytes.*copied"
 			((filenum+=1))
 		done
 	done
