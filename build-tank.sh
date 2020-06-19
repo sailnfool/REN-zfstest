@@ -26,26 +26,9 @@ function slaglists() {
 	slagdir="/dev/disk/by-vdev/"
 	slagssdprefix="U"
 	slagssdlist=/tmp/slagssdlist.$$.txt
-	slag5list=/tmp/slag5list.$$.txt
-	slag6list=/tmp/slag6list.$$.txt
-	slagtmplist=/tmp/slagtmplist.$$.txt
 	cd ${slagdir}
 	ls ${slagssdprefix}* > ${slagssdlist}
-	count=$(cat ${slagssdlist} | wc -l)
-	((countfor5=count / 2))
-	((countfor6=count - countfor5))
-	head -${countfor5} ${slagssdlist} > ${slag5list}
-	tail -${countfor6} ${slagssdlist} > ${slag6list}
-	cat ${slag5list} ${slag6list} > ${slagtmplist}
-	cmp -s ${slagssdlist} ${slagtmplist} 2>&1 > /dev/null
-	if [ $? -ne 0 ]
-	then
-		errecho "Mismatch in generated devlists"
-		errecho "${slagssdist}"
-		errecho "${slagtmplist}"
-		diff ${slagssdist} ${slagtmplist}
-		exit -1
-	fi
+	split -n l/2 --numeric-suffixes=5 ${slagssdlist} /tmp/slaglist.$$.slag
 }
 USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] <username> [ssd path1 ...]\n
 \t\tbuild a zfs tank from files or from existing devices\n
@@ -172,15 +155,35 @@ slag5)
 	$(slaglists) 2>&1 > /dev/null
 	if [ ${vdevsspecified} -eq 0 ]
 	then
+		POOLNAMES=""
 		slagdir="/dev/disk/by-vdev/"
-		slagxlist="/tmp/${host}list.$$.txt"
-		echo "zpool create ${pool} ${slagdir}/$(head -1 ${slagxlist})"
-		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${slagxlist})
-		for loopdev in $(tail -n +2 ${slagxlist})
+	split -n l/2 --numeric-suffixes=5 ${slagssdlist} /tmp/slaglist.$$.slag
+		slagxlist="/tmp/slaglist.$$.${host}"
+		for loopdev in $(cat ${slagdist})
 		do
-			echo "zpool add ${pool} ${slagdir}/${loopdev}"
-			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
+			POOLNAMES="${POOLNAMES} ${slagdir}/${loopdev}"
 		done
+		if [ ${mirrored} -eq 1 ]
+		then
+			if [ $(expr ${num_vdevs} % 2) -eq 0 ]
+			then
+				$(echo ${POOLNAMES} > /tmp/pools.$$.whole)
+				split -n l/2 /tmp/pools.$$.whole /tmp/pools.$$.half
+				mirror_num=1
+				for i in /tmp/pools.$$.half*
+				do
+					MIRROR_${mirror_num}=$i
+					((mirror_num++))
+				done
+				POOLNAMES=${MIRROR_1} mirror ${MIRROR_2}
+				rm -rf /tmp/pools.$$.*
+			else
+				errecho "Mirror requested, odd number of vdevs"
+				exit -1
+			fi
+		fi
+		echo "zpool create ${pool} ${POOLNAMES}"
+		/bin/time zpool create ${pool} ${POOLNAMES}
 		zpool status ${pool}
 		zfs set recordsize=1m ${pool}
 		chown ${luser} ${pooldir}
