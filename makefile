@@ -13,7 +13,8 @@ INSTALL = build-tank setup-intree test-intree zdb-hist \
 	zfunc.histochecktestpool \
 	zfunc.histogetpoolsize \
 	zfunc.histologfile \
-	zfunc.histopopulatepool
+	zfunc.histopopulatepool \
+	test-histo
 	
 
 EXECDIR2=$(PREFIX2)/bin
