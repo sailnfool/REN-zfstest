@@ -157,9 +157,8 @@ slag5)
 	then
 		POOLNAMES=""
 		slagdir="/dev/disk/by-vdev/"
-	split -n l/2 --numeric-suffixes=5 ${slagssdlist} /tmp/slaglist.$$.slag
 		slagxlist="/tmp/slaglist.$$.${host}"
-		for loopdev in $(cat ${slagdist})
+		for loopdev in $(cat ${slagxlist})
 		do
 			POOLNAMES="${POOLNAMES} ${slagdir}/${loopdev}"
 		done

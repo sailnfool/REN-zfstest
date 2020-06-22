@@ -1,22 +1,23 @@
 SHELL=/bin/bash
 PREFIX?=$(HOME)
 PREFIX2?=/tftpboot/global/novak5
-.ksh:
-	@rm -f $@
-	cp $< $@
 .sh:
 	@rm -f $@
 	cp $< $@
-INSTALL = build-tank setup-intree test-intree zdb-hist \
+INSTALL = build-tank \
 	drain-tank \
 	fill-tank \
+	zdb-hist \
+	setup-intree \
+	setup-draid \
+	test-intree \
 	zfunc.histochecktestpool \
 	zfunc.histogetpoolsize \
 	zfunc.histologfile \
 	zfunc.histopopulatepool \
+	zfunc.results \
+	zfunc.zfsparent \
 	test-histo
-	
-
 EXECDIR2=$(PREFIX2)/bin
 EXECDIR := $(PREFIX)/bin
 

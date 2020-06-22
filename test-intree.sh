@@ -102,22 +102,24 @@ cd ${ZFSDIR}
 if [ "${skip_get_branch}" = 0 ]
 then
 	declare -A -g branch_name
+	tmpbranchlist=/tmp/zfs_branches.$$.txt
+	echo "tmpbranchlist = ${tmpbranchlist}"
 	git branch -a | \
-	    sed -n -e 's,remotes/origin/\([^H]\),\1,p' > \
-	    /tmp/zfs_branches.$$.txt
+	    sed -n -e 's,remotes/origin/\([^H]\),\1,p'> ${tmpbranchlist} 
+	more ${tmpbranchlist}
 	branchnumber=1
 	while read branchname
 	do
 		branch_name[${branchnumber}]=${branchname}
 		printf "%4d\t%s\n" ${branchnumber} ${branchname}
 		((branchnumber++))
-	done < /tmp/zfs_branches.$$.txt
+	done < ${tmpbranchlist}
 	read -p "Which Branch Number [1]: " choice
-	rm -f /tmp/zfs_branches.$$.txt
 	if [ -z "${choice}" ]
 	then
 		choice=1
 	fi
+	rm -f ${tmpbranchlist}
 
 	####################
 	# No matter the source, by default load the master branch,
