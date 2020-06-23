@@ -41,6 +41,7 @@ REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
 REPO_OPENZFS="https://github.com/openzfs/zfs"
 # REPO_DRAID="https://github.com/behlendorf/zfs/tree/draid-feature"
 REPO_DRAID="https://github.com/behlendorf/zfs.git"
+REN_DRAID=REN-draid
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
 user_mode_only=0
@@ -237,9 +238,11 @@ if [ ${draidused} -eq 1 ]
 then
 	git remote add upstream ${REPO_OPENZFS}
 	git fetch upstream
-
 	git remote add draid ${REPO_DRAID}
-	git fetch draid draid-feature:REN-draid
+	if [ -z "$(git branch --list ${REN_DRAID})" ]
+	then
+		git fetch draid draid-feature:${REN_DRAID}
+	fi
 	git branch -v
 	git branch -a
 else
