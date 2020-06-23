@@ -227,5 +227,5 @@ fi
 
 cd zfs
 git remote add draid https://github.com/behlendorf/zfs
-git fetch draid issue-10241:REN-issue-10241
+git fetch draid issue-10102:REN-issue-10102
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"
