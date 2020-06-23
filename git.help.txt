@@ -1,0 +1,8 @@
+git log --graph --pretty=oneline
+git push --force origin <branchname>
+git branch -v
+git branch -vv
+git branch -a
+git commit --amend
+git reset --hard 891d73f
+
