@@ -78,7 +78,7 @@ do
 			use_existing_clone=1
 			;;
 		d)
-			REPO=${REPO_DRAID}
+			REPO=${REPO_REN_BRANCH}
 			draidused=1
 			;;
 		s)
