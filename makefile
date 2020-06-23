@@ -15,8 +15,7 @@ INSTALL = build-tank \
 	zfunc.histologfile \
 	zfunc.histopopulatepool \
 	zfunc.results \
-	zfunc.zfsparent \
-	test-histo
+	zfunc.zfsparent
 EXECDIR2=$(PREFIX2)/bin
 EXECDIR := $(PREFIX)/bin
 

@@ -22,13 +22,26 @@ source func.errecho
 # for persistent naming affiliated with their rack locations.
 ####################
 function slaglists() {
+	if [ $# -eq 1 ]
+	then
+		slagssdprefix=$1
+	else
+		slagssdprefix="U"
+	fi
+	suffix=$(echo $(hostname) | sed "s/^[^0-9]*//")
+	if [ -z ${suffix} ]
+	then
+		errecho "${0##*/} Host $(hostname) is not a storage node"
+		exit -1
+	fi
 	rm -rf /tmp/slag*.txt
 	slagdir="/dev/disk/by-vdev/"
-	slagssdprefix="U"
 	slagssdlist=/tmp/slagssdlist.$$.txt
 	cd ${slagdir}
 	ls ${slagssdprefix}* > ${slagssdlist}
-	split -n l/2 --numeric-suffixes=5 ${slagssdlist} /tmp/slaglist.$$.slag
+	split -n l/2 --numeric-suffixes=${suffix} \
+	    --suffix-length=1
+	    ${slagssdlist} /tmp/slaglist.$$.slag
 }
 USAGE="\n${0##*/} [-hdv] [-b <blksize>] [-f <#>] [-p <pool>] [-x <vdev-prefix>] <username> [ssd path1 ...]\n
 \t\tbuild a zfs tank from files or from existing devices\n
@@ -143,31 +156,29 @@ fi
 export PATH=~${luser}/github/zfs/bin:~${luser}/bin:$PATH
 host=$(hostname)
 case ${host} in
-slag5)
+slag7)
 	echo "We are on $(hostname)"
 	rm -rf /tmp/slag*.txt
 	slagdir="/dev/disk/by-vdev/"
-	slagssdprefix="U"
 	slagssdlist=/tmp/slagssdlist.$$.txt
-	slag5list=/tmp/slag5list.$$.txt
-	slag6list=/tmp/slag6list.$$.txt
 	slagtmplist=/tmp/slagtmplist.$$.txt
-	$(slaglists) 2>&1 > /dev/null
+	$(slaglists "U" ) 2>&1 > /dev/null
 	if [ ${vdevsspecified} -eq 0 ]
 	then
 		POOLNAMES=""
 		slagdir="/dev/disk/by-vdev/"
 		slagxlist="/tmp/slaglist.$$.${host}"
-		for loopdev in $(cat ${slagxlist})
+		for devname in $(cat ${slagxlist})
 		do
-			POOLNAMES="${POOLNAMES} ${slagdir}/${loopdev}"
+			POOLNAMES="${POOLNAMES} ${slagdir}/${devname}"
 		done
 		if [ ${mirrored} -eq 1 ]
 		then
 			if [ $(expr ${num_vdevs} % 2) -eq 0 ]
 			then
 				$(echo ${POOLNAMES} > /tmp/pools.$$.whole)
-				split -n l/2 /tmp/pools.$$.whole /tmp/pools.$$.half
+				split -n l/2 /tmp/pools.$$.whole \
+				    /tmp/pools.$$.half
 				mirror_num=1
 				for i in /tmp/pools.$$.half*
 				do
@@ -206,10 +217,10 @@ slag6)
 		slagdir="/dev/disk/by-vdev/"
 		echo "zpool create ${pool} ${slagdir}/$(head -1 ${host}list)"
 		/bin/time zpool create ${pool} ${slagdir}/$(head -1 ${host}list)
-		for loopdev in $(tail -n +2 ${host}list)
+		for devname in $(tail -n +2 ${host}list)
 		do
-			echo "zpool add ${pool} ${slagdir}/${loopdev}"
-			/bin/time zpool add ${pool} ${slagdir}/${loopdev}
+			echo "zpool add ${pool} ${slagdir}/${devname}"
+			/bin/time zpool add ${pool} ${slagdir}/${devname}
 		done
 		zpool status ${pool}
 		zfs set recordsize=1m ${pool}

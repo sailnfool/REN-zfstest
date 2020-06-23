@@ -42,6 +42,7 @@ fi
 skip_get_branch=0
 reconfigure=1
 user_space=""
+testing=0
 
 ####################
 # Find out what operating system we are running
@@ -61,7 +62,7 @@ then
 	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-optionargs="hnu"
+optionargs="hntu"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -71,6 +72,9 @@ do
 		;;
 	n)
 		skip_get_branch=1
+		;;
+	t)
+		testing=1
 		;;
 	u)
 		user_space="--with-config=user"
@@ -234,6 +238,16 @@ sudo ./scripts/zfs-helpers.sh -i
 #
 sudo ./scripts/zfs.sh
 
+#
+# This process originally developed for the histogram block size 
+# output of zdb.  Here we exercise the single test of this
+# functionality that has been added to zdb
+#
+if [ ${testing} -eq 1 ]
+then
+	testpath=tests/functional/cli_root/zdb
+	./scripts/zfs-tests.sh -t ${testpath}/zdb_block_size_histogram
+fi
 #
 # zloop.sh: A wrapper to run ztest repeatedly with randomized
 # arguments. The ztest command is a user space stress test designed
