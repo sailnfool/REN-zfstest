@@ -9,7 +9,6 @@ INSTALL = build-tank \
 	fill-tank \
 	zdb-hist \
 	setup-intree \
-	setup-draid \
 	test-intree \
 	zfunc.histochecktestpool \
 	zfunc.histogetpoolsize \
