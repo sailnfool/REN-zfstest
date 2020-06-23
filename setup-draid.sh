@@ -39,6 +39,7 @@ then
 fi
 REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
 REPO_STANDARD="https://github.com/openzfs/zfs"
+REPO_DRAID="https://github.com/behlendorf/zfs/tree/draid-feature"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
 user_mode_only=0
@@ -63,7 +64,7 @@ then
 	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-optionargs="hcr:su"
+optionargs="hcdr:su"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -73,6 +74,9 @@ do
 			;;
 		c)
 			use_existing_clone=1
+			;;
+		d)
+			REPO=${REPO_DRAID}
 			;;
 		s)
 			REPO=${REPO_STANDARD}
@@ -226,6 +230,5 @@ then
 fi
 
 cd zfs
-git remote add draid https://github.com/behlendorf/zfs
-git fetch draid issue-10102:REN-issue-10102
+git remote add draid https://github.com/behlendorf/zfs/tree/draid-feature
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"
