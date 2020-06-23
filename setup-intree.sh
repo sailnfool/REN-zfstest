@@ -3,7 +3,7 @@
 # Author Robert E. Novak
 # email: novak5@llnl.gov, sailnfool@gmail.com
 #
-# This script will set up in-tree testing of ZFS, taking care to 
+# This script will set up in-tree testing of ZFS draid, taking care to 
 # install the necessary packages required for testing of ZFS
 # depending on the 
 # In the github wiki it recommends installing the following packages 
@@ -38,16 +38,20 @@ then
 	fi
 fi
 REPO_REN_BRANCH="https://github.com/sailnfool/zfs"
-REPO_STANDARD="https://github.com/openzfs/zfs"
+REPO_OPENZFS="https://github.com/openzfs/zfs"
+# REPO_DRAID="https://github.com/behlendorf/zfs/tree/draid-feature"
+REPO_DRAID="https://github.com/behlendorf/zfs.git"
 REPO=${REPO_REN_BRANCH}
 use_existing_clone=0
 user_mode_only=0
+draidused=0
 
 ####################
 # Find out what operating system we are running
 ####################
 OS_RELEASE=$(lsb_release -i | cut -f 2)
 OS_REVISION=$(lsb_release -r | cut -f 2)
+tossrelease=0
 
 ZFSPARENT=$(zfsparent)
 mkdir -p ${ZFSPARENT}
@@ -58,10 +62,11 @@ errecho "Working with OS Release ${OS_RELEASE}"
 errecho "Working with OS Revision ${OS_REVISION}"
 if [ -r /etc/toss-release ]
 then
+	tossrealease=1
 	errecho "This is a TOSS system $(cat /etc/toss-release)"
 fi
 
-optionargs="hcr:su"
+optionargs="hcdr:su"
 while getopts ${optionargs} name
 do
 	case ${name} in
@@ -72,8 +77,12 @@ do
 		c)
 			use_existing_clone=1
 			;;
+		d)
+			REPO=${REPO_DRAID}
+			draidused=1
+			;;
 		s)
-			REPO=${REPO_STANDARD}
+			REPO=${REPO_OPENZFS}
 			;;
 		r)
 			REPO=${OPTARG}
@@ -93,7 +102,10 @@ jetname='jet[i0-9][0-9]*'
 if [[ ! "${host}" =~ ${slagname} && \
 	! "${host}" =~ ${jetname} ]]
 then
-	errecho "Installing tools required for zfs"
+	if [ $tossrelease -eq 0 ]
+	then
+		errecho "Installing tools required for zfs"
+	fi
 	case ${OS_RELEASE} in
 		Ubuntu | Debian )
 			sudo apt install build-essential autoconf \
@@ -220,4 +232,18 @@ then
 	fi
 fi
 
+cd zfs
+if [ ${draidused} -eq 1 ]
+then
+	git remote add upstream ${REPO_OPENZFS}
+	git fetch upstream
+
+	git remote add draid ${REPO_DRAID}
+	git fetch draid draid-feature:REN-draid
+	git branch -v
+	git branch -a
+else
+	git remote add upstream ${REPO_OPENZFS}
+	git fetch upstream
+fi
 echo "${0##*/}: run test-intree to test this cloned copy of ZFS"

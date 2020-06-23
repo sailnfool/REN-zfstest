@@ -5,4 +5,5 @@ git branch -vv
 git branch -a
 git commit --amend
 git reset --hard 891d73f
-
+git remote add draid https://github.com/behlendorf/zfs.git
+git fetch draid draid-feature:REN-draid
