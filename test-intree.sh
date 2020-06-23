@@ -103,17 +103,18 @@ if [ "${skip_get_branch}" = 0 ]
 then
 	declare -A -g branch_name
 	tmpbranchlist=/tmp/zfs_branches.$$.txt
-	echo "tmpbranchlist = ${tmpbranchlist}"
 	git branch -a | \
-	    sed -n -e 's,remotes/origin/\([^H]\),\1,p'> ${tmpbranchlist} 
-	more ${tmpbranchlist}
+		sed -n -e 's,^\(..\)\(.*\),\1	\2,p'> ${tmpbranchlist} 
 	branchnumber=1
-	while read branchname
+	OFS=$IFS
+	IFS="	"
+	while read prefix branchname
 	do
 		branch_name[${branchnumber}]=${branchname}
-		printf "%4d\t%s\n" ${branchnumber} ${branchname}
+		printf "%s %4d\t%s\n" ${prefix} ${branchnumber} ${branchname}
 		((branchnumber++))
 	done < ${tmpbranchlist}
+	IFS=$OFS
 	read -p "Which Branch Number [1]: " choice
 	if [ -z "${choice}" ]
 	then
