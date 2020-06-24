@@ -33,7 +33,7 @@ else
 fi
 cd /dev/disk/by-vdev
 declare -A devname scsiname sdname tsize model vendor
-echo "number	v-dev	/dev	size	Model	Vendor"
+echo "number	v-dev	/dev	size	Model	Vendor">/tmp/header.$$
 for i in ${prefix}*
 do
 	number=$(echo $i|sed 's/^.//')
@@ -47,6 +47,7 @@ do
 	vendor[$i]=$(lsblk --output VENDOR /dev/${sdname[${i}]}|head -2|tail -1)
 	echo "$number	$i	${sdname[${i}]}	${tsize[${i}]}	${model[${i}]} ${vendor[${i}]}" >> /tmp/devlist.$$
 done
-sort -n  /tmp/devlist.$$
-rm -f /tmp/devlist.$$
+sort -n  /tmp/devlist.$$ >> /tmp/header.$$
+cat /tmp/header.$$ | more
+rm -f /tmp/devlist.$$ /tmp/header.$$
 
