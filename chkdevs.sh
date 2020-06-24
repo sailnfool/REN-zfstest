@@ -2,8 +2,10 @@
 USAGE="${0##*/} [UL]\n
 \tCollects and prints information about the devices in /dev/disk/by-vdev\n
 \tThe listed devices are those with prefex U or L (default U)\n
+\t-s\t\tSort the devices by size, then by number\n
 "
-optionargs="h"
+sortkey=""
+optionargs="hs"
 NUMARGS=0
 while getopts ${optionargs} name
 do
@@ -11,6 +13,9 @@ do
 	h)
 		echo -e ${USAGE}
 		exit 0
+		;;
+	s)
+		sortkey="--key=4h"
 		;;
 	\?)
 		echo "invalid option ${OPTARG}"
@@ -47,7 +52,7 @@ do
 	vendor[$i]=$(lsblk --output VENDOR /dev/${sdname[${i}]}|head -2|tail -1)
 	echo "$number	$i	${sdname[${i}]}	${tsize[${i}]}	${model[${i}]} ${vendor[${i}]}" >> /tmp/devlist.$$
 done
-sort -n  /tmp/devlist.$$ >> /tmp/header.$$
+sort ${sortkey} --key="1n" /tmp/devlist.$$ >> /tmp/header.$$
 cat /tmp/header.$$ | more
 rm -f /tmp/devlist.$$ /tmp/header.$$
 
