@@ -26,6 +26,6 @@ then
 	source ${BASHRC_ADDPATH}
 fi
 export OLDPS1=$PS1
-export PS1="[\u@\h:\w:$(/usr/bin/git branch 2>/dev/null | /usr/bin/grep '^*')] \$ "
+export PS1="[\u@\h:\w:\$(/usr/bin/git branch 2>/dev/null | /usr/bin/grep '^*')] \$ "
 echo ""
 echo $PATH
