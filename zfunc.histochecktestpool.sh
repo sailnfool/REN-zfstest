@@ -19,6 +19,7 @@ function histo_check_test_pool
 	typeset -i sum_filesizes=0
 	typeset dumped
 	typeset stripped
+	re_number='^[0-9]+$'
 
 	let histo_check_pool_size=$(histo_get_pool_size ${pool})
 	if [[ ! ${histo_check_pool_size} =~ ${re_number} ]]
